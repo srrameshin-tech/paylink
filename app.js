@@ -300,17 +300,37 @@ document.getElementById("copyBtn").addEventListener("click", () => {
   }
 });
 
-document.getElementById("shareBtn").addEventListener("click", () => {
+document.getElementById("shareBtn").addEventListener("click", async () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
   const link = buildUpiLink(entry);
   const text = `Payment Request\nPay to: ${entry.name}\nAmount: ${formatRupee(entry.amount)}\nPurpose: ${entry.purpose}\n\nPay using this link:\n${link}`;
-  if (navigator.share) {
-    navigator.share({ title: "PayLink", text }).catch(() => {});
-  } else {
-    const waLink = "https://wa.me/?text=" + encodeURIComponent(text);
-    window.open(waLink, "_blank");
+
+  const qrEl = document.getElementById("qrcodeEl");
+  const canvas = qrEl.querySelector("canvas");
+
+  // Try sharing with the QR image attached as a file
+  if (navigator.share && canvas) {
+    try {
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (blob && navigator.canShare) {
+        const file = new File([blob], "paylink-qr.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: "PayLink", text, files: [file] });
+          return;
+        }
+      }
+      // fallback: share text only if files not supported
+      await navigator.share({ title: "PayLink", text });
+      return;
+    } catch (e) {
+      // user cancelled or share failed, fall through to WhatsApp link fallback
+      if (e && e.name === "AbortError") return;
+    }
   }
+
+  const waLink = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(waLink, "_blank");
 });
 
 document.getElementById("dlBtn").addEventListener("click", () => {
