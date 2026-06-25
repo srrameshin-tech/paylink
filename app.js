@@ -170,13 +170,13 @@ document.getElementById("recoverBtn").addEventListener("click", async () => {
 
 // ===================== UPI LINK / QR GENERATION =====================
 function buildUpiLink({ upi, name, amount, purpose }) {
-  const params = new URLSearchParams();
-  params.set("pa", upi);
-  params.set("pn", name);
-  if (amount) params.set("am", amount);
-  params.set("cu", "INR");
-  if (purpose) params.set("tn", purpose);
-  return `upi://pay?${params.toString()}`;
+  const params = [];
+  params.push("pa=" + encodeURIComponent(upi));
+  params.push("pn=" + encodeURIComponent(name));
+  if (amount) params.push("am=" + encodeURIComponent(amount));
+  params.push("cu=INR");
+  if (purpose) params.push("tn=" + encodeURIComponent(purpose));
+  return `upi://pay?${params.join("&")}`;
 }
 
 function formatRupee(amount) {
@@ -263,22 +263,48 @@ document.getElementById("closeReceiptBtn").addEventListener("click", () => {
   renderHistory();
 });
 
+function copyTextFallback(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text;
+  ta.style.position = "fixed";
+  ta.style.left = "-9999px";
+  ta.style.top = "0";
+  document.body.appendChild(ta);
+  ta.focus();
+  ta.select();
+  let ok = false;
+  try {
+    ok = document.execCommand("copy");
+  } catch (e) {
+    ok = false;
+  }
+  document.body.removeChild(ta);
+  return ok;
+}
+
 document.getElementById("copyBtn").addEventListener("click", () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
   const link = buildUpiLink(entry);
-  navigator.clipboard.writeText(link).then(() => {
-    toast("Link copy ஆச்சு ✓");
-  }).catch(() => {
-    toast("Copy fail ஆச்சு");
-  });
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(link).then(() => {
+      toast("Link copy ஆச்சு ✓");
+    }).catch(() => {
+      const ok = copyTextFallback(link);
+      toast(ok ? "Link copy ஆச்சு ✓" : "Copy fail ஆச்சு, link select panni copy pannunga");
+    });
+  } else {
+    const ok = copyTextFallback(link);
+    toast(ok ? "Link copy ஆச்சு ✓" : "Copy fail ஆச்சு, link select panni copy pannunga");
+  }
 });
 
 document.getElementById("shareBtn").addEventListener("click", () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
   const link = buildUpiLink(entry);
-  const text = `Payment Request\nPay to: ${entry.name}\nUPI ID: ${entry.upi}\nAmount: ${formatRupee(entry.amount)}\nPurpose: ${entry.purpose}\n\n${link}`;
+  const text = `Payment Request\nPay to: ${entry.name}\nAmount: ${formatRupee(entry.amount)}\nPurpose: ${entry.purpose}\n\nPay using this link:\n${link}`;
   if (navigator.share) {
     navigator.share({ title: "PayLink", text }).catch(() => {});
   } else {
