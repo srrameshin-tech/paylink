@@ -304,7 +304,7 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
   const link = buildUpiLink(entry);
-  const text = `*PAYMENT REQUEST*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\nScan the QR code above to pay,\nor use this link:\n${link}`;
+  const text = `*PAYMENT REQUEST*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\nQR code\n\nPay using this link:\n${link}`;
 
   const qrEl = document.getElementById("qrcodeEl");
   const canvas = qrEl.querySelector("canvas");
