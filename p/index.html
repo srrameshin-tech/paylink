@@ -138,6 +138,7 @@
       <div class="receipt">
         <div class="receipt-inner">
           <div class="receipt-stamp">Payment Request</div>
+          ${!isPaid ? '<div style="text-align:center;font-size:11px;color:var(--mint);margin-bottom:4px;">UPI app திறக்கிறது...</div>' : ''}
           <div class="receipt-amt">${formatRupee(entry.amount)}</div>
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val">${entry.name}</span></div>
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val">${entry.upi}</span></div>
@@ -160,6 +161,15 @@
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.M
     });
+
+    // Auto-attempt opening the UPI app right away, so most people
+    // never need to tap "Pay Now" manually. QR + button stay as fallback
+    // in case the auto-redirect is blocked (e.g. desktop browser, no UPI app).
+    if (!isPaid) {
+      setTimeout(() => {
+        window.location.href = link;
+      }, 400);
+    }
   }
 
   loadEntry();
