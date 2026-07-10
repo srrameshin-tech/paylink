@@ -127,11 +127,20 @@
   .btn-row > *{flex:1;}
 
   /* ---- receipt card ---- */
-  .receipt-wrap{display:flex; justify-content:center; padding:10px 0 4px;}
+  .receipt-wrap{display:flex; justify-content:center; padding:14px 0 4px;}
   .receipt{
-    width:100%; max-width:340px; background:var(--card);
-    border-radius:4px; position:relative; overflow:visible;
-    box-shadow:0 14px 40px rgba(0,0,0,0.45);
+    width:100%; max-width:340px;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--gold), var(--coral) 45%, var(--mint)) border-box;
+    border:2.5px solid transparent;
+    border-radius:16px; position:relative; overflow:visible;
+    box-shadow:0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(242,184,75,0.15), 0 0 26px rgba(242,184,75,0.18);
+  }
+  .receipt::before{
+    content:"✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦";
+    position:absolute; top:8px; left:0; right:0; text-align:center;
+    color:var(--gold); font-size:9px; letter-spacing:3px; opacity:0.55;
   }
   .receipt-notch{
     position:absolute; top:-9px; left:0; right:0; height:18px;
@@ -141,7 +150,7 @@
     background-size:32px 18px; background-repeat:repeat-x;
   }
   .receipt-notch.bottom{top:auto; bottom:-9px; transform:scaleY(-1);}
-  .receipt-inner{padding:20px 22px 18px;}
+  .receipt-inner{padding:28px 22px 18px;}
   .receipt-stamp{
     text-align:center; font-size:11px; letter-spacing:2px; color:var(--lav-dim);
     text-transform:uppercase; margin-bottom:2px; font-weight:700;
@@ -162,6 +171,14 @@
     background:#fff; border-radius:10px;
   }
   .qr-box canvas, .qr-box img{display:block; width:160px; height:160px;}
+  .btn-paynow{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    text-decoration:none; margin:14px 0 4px; padding:13px;
+    border-radius:12px; font-size:15.5px; font-weight:800; letter-spacing:0.3px;
+    color:#0B2B1E; background:linear-gradient(135deg, var(--mint), #3FAE82);
+    box-shadow:0 8px 20px rgba(95,217,164,0.4);
+  }
+  .btn-paynow:active{transform:translateY(1px);}
   .receipt-foot{text-align:center; font-size:10.5px; color:var(--lav-dim); margin-top:8px; letter-spacing:0.5px;}
   .paid-stamp{
     position:absolute; top:42%; left:50%; transform:translate(-50%,-50%) rotate(-18deg);
@@ -332,7 +349,8 @@
           <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val" id="rcPurpose">-</span></div>
           <div class="receipt-line"><span class="l-key">Date</span><span class="l-val" id="rcDate">-</span></div>
           <div class="qr-box"><div id="qrcodeEl"></div></div>
-          <div class="receipt-foot">Scan QR illa link share பண்ணி பணம் வாங்குங்க</div>
+          <a href="#" id="payNowBtn" class="btn-paynow" target="_blank" rel="noopener">💳 Pay Now</a>
+          <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
           <div class="paid-stamp" id="paidStampInline" style="display:none;">PAID</div>
         </div>
         <div class="receipt-notch bottom"></div>
@@ -341,7 +359,7 @@
     <div class="receipt-actions">
       <button id="shareBtn"><span class="a-ic">📤</span>Share</button>
       <button id="copyBtn"><span class="a-ic">📋</span>Copy Link</button>
-      <button id="dlBtn"><span class="a-ic">⬇️</span>QR Save</button>
+      <button id="dlBtn"><span class="a-ic">⬇️</span>Card Save</button>
     </div>
     <button class="btn-secondary" style="margin-top:10px;" id="closeReceiptBtn">மூடு</button>
   </div>
@@ -369,6 +387,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="app.js"></script>
 </body>
 </html>
