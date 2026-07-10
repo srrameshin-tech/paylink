@@ -1,40 +1,24 @@
-const CACHE_NAME = "paylink-v2";
-const ASSETS = [
-  "/",
-  "/index.html",
-  "/app.js",
-  "/qrcode.min.js",
-  "/manifest.json",
-  "/icon-192.png",
-  "/icon-512.png"
-];
+const CACHE_NAME = "paylink-v3";
+const ASSETS = [];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS)).catch(() => {})
-  );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      Promise.all(keys.map((k) => caches.delete(k)))
     )
   );
   self.clients.claim();
 });
 
-// network-first strategy
+// network-only strategy - always bypass HTTP cache too
 self.addEventListener("fetch", (e) => {
   if (e.request.method !== "GET") return;
   e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        const resClone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(e.request, resClone));
-        return res;
-      })
+    fetch(e.request, { cache: "no-store" })
       .catch(() => caches.match(e.request))
   );
 });
