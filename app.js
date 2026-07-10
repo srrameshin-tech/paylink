@@ -266,29 +266,6 @@ function openReceipt(entry) {
   document.getElementById("receiptOverlay").classList.add("active");
 }
 
-// ===================== PAY NOW RETURN NUDGE =====================
-let awaitingPayReturn = false;
-document.getElementById("payNowBtn").addEventListener("click", () => {
-  if (!activeReceiptId) return;
-  const entry = historyData[activeReceiptId];
-  if (entry && entry.status !== "paid") {
-    awaitingPayReturn = true;
-  }
-});
-
-document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "visible" && awaitingPayReturn) {
-    awaitingPayReturn = false;
-    const entry = historyData[activeReceiptId];
-    if (!entry || entry.status === "paid") return;
-    setTimeout(() => {
-      if (confirm("Pay ஆச்சா? \"OK\" pannunga paid-a mark panna, illa \"Cancel\" pannunga.")) {
-        toggleStatus(entry.id);
-      }
-    }, 400);
-  }
-});
-
 document.getElementById("closeReceiptBtn").addEventListener("click", () => {
   document.getElementById("receiptOverlay").classList.remove("active");
   activeReceiptId = null;
