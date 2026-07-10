@@ -15,10 +15,10 @@
     --bg2:#241531;
     --card:#2A1A3A;
     --card2:#321F45;
-    --coral:#FF6B5B;
-    --coral-dim:#C24E42;
-    --gold:#F2B84B;
-    --mint:#5FD9A4;
+    --coral:#FF7A5C;
+    --coral-dim:#E85A42;
+    --gold:#FFC94B;
+    --mint:#3EE8A8;
     --lav:#9B8FA8;
     --lav-dim:#6E6378;
     --text:#F3ECF7;
@@ -135,7 +135,7 @@
       linear-gradient(135deg, var(--gold), var(--coral) 45%, var(--mint)) border-box;
     border:2.5px solid transparent;
     border-radius:16px; position:relative; overflow:visible;
-    box-shadow:0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(242,184,75,0.15), 0 0 26px rgba(242,184,75,0.18);
+    box-shadow:0 14px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,201,75,0.3), 0 0 36px rgba(255,201,75,0.32);
   }
   .receipt::before{
     content:"✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦";
@@ -167,10 +167,11 @@
   .receipt-line .l-key{color:var(--lav); flex-shrink:0;}
   .receipt-line .l-val{color:var(--text); font-weight:600; text-align:right; word-break:break-word;}
   .qr-box{
-    display:flex; justify-content:center; margin:14px 0 6px; padding:12px;
-    background:#fff; border-radius:10px;
+    display:flex; justify-content:center; margin:14px 0 6px; padding:16px;
+    background:#fff; border-radius:12px;
+    box-shadow:0 0 24px rgba(255,201,75,0.25);
   }
-  .qr-box canvas, .qr-box img{display:block; width:160px; height:160px;}
+  .qr-box canvas, .qr-box img{display:block; width:220px; height:220px;}
   .btn-paynow{
     display:flex; align-items:center; justify-content:center; gap:8px;
     text-decoration:none; margin:14px 0 4px; padding:13px;
