@@ -150,6 +150,13 @@
     if (!res.ok) throw new Error("save failed");
   }
 
+  async function removePayerNote(id) {
+    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/payerNote.json`, {
+      method: "DELETE"
+    });
+    if (!res.ok) throw new Error("delete failed");
+  }
+
   async function loadEntry() {
     const id = getParam("id");
     const root = document.getElementById("root");
@@ -189,7 +196,10 @@
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
 
           ${entry.payerNote ? `
-            <div class="confirm-done">✅ Pay பண்ணிட்டேன்னு சொல்லிட்டாங்க · ${formatDate(entry.payerNote.confirmedAt)}</div>
+            <div class="confirm-done">
+              ✅ Pay பண்ணிட்டேன்னு சொல்லிட்டாங்க · ${formatDate(entry.payerNote.confirmedAt)}
+              <div><a href="#" id="undoConfirmLink" style="color:var(--coral); font-size:11.5px; text-decoration:underline;">❌ இது தவறு, Undo பண்ணுங்க</a></div>
+            </div>
           ` : !isPaid ? `
             <button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>
           ` : ''}
@@ -230,6 +240,23 @@
           submitBtn.disabled = false;
           submitBtn.textContent = "✅ Naan Pay Pannitten";
           alert("Save ஆகல, மறுபடி try பண்ணுங்க");
+        }
+      });
+    }
+
+    const undoLink = document.getElementById("undoConfirmLink");
+    if (undoLink) {
+      undoLink.addEventListener("click", async (e) => {
+        e.preventDefault();
+        undoLink.textContent = "Undo செய்கிறோம்...";
+        try {
+          const id = getParam("id");
+          await removePayerNote(id);
+          delete entry.payerNote;
+          renderCard(entry);
+        } catch (err) {
+          alert("Undo ஆகல, மறுபடி try பண்ணுங்க");
+          undoLink.textContent = "❌ இது தவறு, Undo பண்ணுங்க";
         }
       });
     }
