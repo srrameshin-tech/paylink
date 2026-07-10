@@ -422,7 +422,7 @@ function renderHistory(filterText = "") {
           <div class="hist-amt">${formatRupee(e.amount)}</div>
           <div class="hist-purpose">${escapeHtml(e.purpose)}</div>
           <div class="hist-meta">${escapeHtml(e.upi)} · ${formatDate(e.createdAt)}</div>
-          ${e.payerNote ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ Payer said paid · UTR: ${escapeHtml(e.payerNote.utr)}</div>` : ''}
+          ${e.payerNote ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ Payer said: Paid</div>` : ''}
         </div>
         <span class="status-chip ${e.status === 'paid' ? 'paid' : 'pending'}">${e.status === 'paid' ? '✓ Paid' : 'Pending'}</span>
       </div>
