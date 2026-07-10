@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PayLink - Payment Request</title>
+<style>
+  :root{
+    --bg:#1A1024; --card:#2A1A3A;
+    --coral:#FF6B5B; --coral-dim:#C24E42;
+    --gold:#F2B84B; --mint:#5FD9A4;
+    --lav:#9B8FA8; --lav-dim:#6E6378;
+    --text:#F3ECF7; --line:#43304F;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{
+    margin:0; min-height:100vh; background:var(--bg); color:var(--text);
+    font-family:'Segoe UI',Roboto,Arial,sans-serif;
+    display:flex; align-items:center; justify-content:center; padding:24px 16px;
+  }
+  .receipt-wrap{width:100%; max-width:360px;}
+  .receipt{
+    width:100%;
+    background:
+      linear-gradient(var(--card), var(--card)) padding-box,
+      linear-gradient(135deg, var(--gold), var(--coral) 45%, var(--mint)) border-box;
+    border:2.5px solid transparent;
+    border-radius:16px; position:relative;
+    box-shadow:0 14px 40px rgba(0,0,0,0.5), 0 0 26px rgba(242,184,75,0.18);
+  }
+  .receipt::before{
+    content:"✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦ ✦";
+    position:absolute; top:8px; left:0; right:0; text-align:center;
+    color:var(--gold); font-size:9px; letter-spacing:3px; opacity:0.55;
+  }
+  .receipt-inner{padding:28px 22px 22px;}
+  .receipt-stamp{
+    text-align:center; font-size:11px; letter-spacing:2px; color:var(--lav-dim);
+    text-transform:uppercase; margin-bottom:2px; font-weight:700;
+  }
+  .receipt-amt{
+    text-align:center; font-size:32px; font-weight:800; color:var(--gold);
+    font-family:'Georgia',serif; margin:4px 0 14px;
+  }
+  .receipt-line{
+    display:flex; justify-content:space-between; align-items:flex-start;
+    padding:9px 0; border-bottom:1px dashed var(--line); font-size:14px; gap:10px;
+  }
+  .receipt-line:last-of-type{border-bottom:none;}
+  .receipt-line .l-key{color:var(--lav); flex-shrink:0;}
+  .receipt-line .l-val{color:var(--text); font-weight:600; text-align:right; word-break:break-word;}
+  .qr-box{
+    display:flex; justify-content:center; margin:16px 0 6px; padding:14px;
+    background:#fff; border-radius:10px;
+  }
+  .qr-box canvas{display:block; width:170px; height:170px;}
+  .btn-paynow{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    text-decoration:none; margin:16px 0 6px; padding:14px;
+    border-radius:12px; font-size:16px; font-weight:800; letter-spacing:0.3px;
+    color:#0B2B1E; background:linear-gradient(135deg, var(--mint), #3FAE82);
+    box-shadow:0 8px 20px rgba(95,217,164,0.4); border:none; width:100%; cursor:pointer;
+  }
+  .btn-paynow:active{transform:translateY(1px);}
+  .receipt-foot{text-align:center; font-size:10.5px; color:var(--lav-dim); margin-top:10px; letter-spacing:0.5px;}
+  .paid-stamp{
+    position:absolute; top:42%; left:50%; transform:translate(-50%,-50%) rotate(-18deg);
+    border:4px solid var(--mint); color:var(--mint); font-weight:800; font-size:26px;
+    padding:6px 18px; border-radius:8px; letter-spacing:3px; opacity:0.9;
+    background:rgba(95,217,164,0.08); z-index:5;
+  }
+  .status-msg{text-align:center; padding:60px 20px; color:var(--lav-dim); font-size:14px;}
+  .brand-foot{text-align:center; margin-top:16px; font-size:11px; color:var(--lav-dim);}
+</style>
+</head>
+<body>
+
+<div class="receipt-wrap" id="root">
+  <div class="status-msg">Loading payment request...</div>
+</div>
+
+<script src="../qrcode.min.js"></script>
+<script>
+  const firebaseUrl = "https://kmbsc-chit-default-rtdb.asia-southeast1.firebasedatabase.app";
+
+  function formatRupee(amount) {
+    const n = parseFloat(amount);
+    if (isNaN(n)) return "₹0";
+    return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  }
+
+  function formatDate(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) +
+      " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function buildUpiLink(entry) {
+    const params = [];
+    params.push("pa=" + encodeURIComponent(entry.upi));
+    params.push("pn=" + encodeURIComponent(entry.name));
+    if (entry.amount) params.push("am=" + encodeURIComponent(entry.amount));
+    params.push("cu=INR");
+    if (entry.purpose) params.push("tn=" + encodeURIComponent(entry.purpose));
+    return `upi://pay?${params.join("&")}`;
+  }
+
+  function getParam(name) {
+    return new URLSearchParams(window.location.search).get(name);
+  }
+
+  async function loadEntry() {
+    const id = getParam("id");
+    const root = document.getElementById("root");
+    if (!id) {
+      root.innerHTML = '<div class="status-msg">Payment link தவறு. Link சரி பாருங்க.</div>';
+      return;
+    }
+    try {
+      const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}.json`);
+      const entry = await res.json();
+      if (!entry) {
+        root.innerHTML = '<div class="status-msg">இந்த payment request கிடைக்கல. Link expire ஆகி இருக்கலாம்.</div>';
+        return;
+      }
+      renderCard(entry);
+    } catch (e) {
+      root.innerHTML = '<div class="status-msg">Network error. மறுபடி try பண்ணுங்க.</div>';
+    }
+  }
+
+  function renderCard(entry) {
+    const root = document.getElementById("root");
+    const link = buildUpiLink(entry);
+    const isPaid = entry.status === "paid";
+
+    root.innerHTML = `
+      <div class="receipt">
+        <div class="receipt-inner">
+          <div class="receipt-stamp">Payment Request</div>
+          <div class="receipt-amt">${formatRupee(entry.amount)}</div>
+          <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val">${entry.name}</span></div>
+          <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val">${entry.upi}</span></div>
+          <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val">${entry.purpose}</span></div>
+          <div class="receipt-line"><span class="l-key">Date</span><span class="l-val">${formatDate(entry.createdAt)}</span></div>
+          <div class="qr-box"><div id="qrcodeEl"></div></div>
+          <a href="${link}" class="btn-paynow">💳 Pay Now</a>
+          <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
+          ${isPaid ? '<div class="paid-stamp">PAID</div>' : ''}
+        </div>
+      </div>
+      <div class="brand-foot">PayLink · sramesh.in</div>
+    `;
+
+    new QRCode(document.getElementById("qrcodeEl"), {
+      text: link,
+      width: 170,
+      height: 170,
+      colorDark: "#1A1024",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  loadEntry();
+</script>
+</body>
+</html>
