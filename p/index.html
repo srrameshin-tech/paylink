@@ -136,8 +136,8 @@
     return d.innerHTML;
   }
 
-  async function submitPayerNote(id, utr) {
-    const body = JSON.stringify({ utr, confirmedAt: Date.now() });
+  async function submitPayerNote(id) {
+    const body = JSON.stringify({ confirmedAt: Date.now() });
     const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/payerNote.json`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -185,14 +185,9 @@
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
 
           ${entry.payerNote ? `
-            <div class="confirm-done">✅ Pay பண்ணிட்டேன்னு சொல்லிருக்காங்க · UTR: ${escapeHtml(entry.payerNote.utr || '-')}</div>
+            <div class="confirm-done">✅ Pay பண்ணிட்டேன்னு சொல்லிட்டாங்க · ${formatDate(entry.payerNote.confirmedAt)}</div>
           ` : !isPaid ? `
-            <button class="btn-confirm" id="confirmToggleBtn">✅ Naan Pay Pannitten</button>
-            <div class="confirm-form" id="confirmForm">
-              <input type="text" id="utrInput" placeholder="UTR / Reference Number (UPI app-ல கிடைக்கும்)">
-              <div class="hint">Payment பண்ணின பிறகு UPI app-ல இருக்கும் 12-digit number போடுங்க</div>
-              <button id="confirmSubmitBtn">Submit</button>
-            </div>
+            <button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>
           ` : ''}
 
           ${isPaid ? '<div class="paid-stamp">PAID</div>' : ''}
@@ -220,21 +215,16 @@
     const submitBtn = document.getElementById("confirmSubmitBtn");
     if (submitBtn) {
       submitBtn.addEventListener("click", async () => {
-        const id = getParam("id");
-        const utr = document.getElementById("utrInput").value.trim();
-        if (!utr) {
-          alert("UTR number போடுங்க");
-          return;
-        }
         submitBtn.disabled = true;
         submitBtn.textContent = "Saving...";
         try {
-          await submitPayerNote(id, utr);
-          entry.payerNote = { utr, confirmedAt: Date.now() };
+          const id = getParam("id");
+          await submitPayerNote(id);
+          entry.payerNote = { confirmedAt: Date.now() };
           renderCard(entry);
         } catch (e) {
           submitBtn.disabled = false;
-          submitBtn.textContent = "Submit";
+          submitBtn.textContent = "✅ Naan Pay Pannitten";
           alert("Save ஆகல, மறுபடி try பண்ணுங்க");
         }
       });
