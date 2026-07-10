@@ -254,6 +254,8 @@ function openReceipt(entry) {
     correctLevel: QRCode.CorrectLevel.M
   });
 
+  document.getElementById("payNowBtn").href = link;
+
   document.getElementById("receiptOverlay").classList.add("active");
 }
 
@@ -300,21 +302,35 @@ document.getElementById("copyBtn").addEventListener("click", () => {
   }
 });
 
+async function captureReceiptCard() {
+  const card = document.getElementById("receiptCard");
+  if (!window.html2canvas) return null;
+  try {
+    const canvas = await html2canvas(card, {
+      backgroundColor: null,
+      scale: 3,
+      useCORS: true
+    });
+    return canvas;
+  } catch (e) {
+    return null;
+  }
+}
+
 document.getElementById("shareBtn").addEventListener("click", async () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
   const link = buildUpiLink(entry);
   const text = `*PAYMENT REQUEST*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\nPay using this link:\n${link}`;
 
-  const qrEl = document.getElementById("qrcodeEl");
-  const canvas = qrEl.querySelector("canvas");
+  const cardCanvas = await captureReceiptCard();
 
-  // Try sharing with the QR image attached as a file
-  if (navigator.share && canvas) {
+  // Try sharing the full grand card (QR + Pay Now button + border) as an image
+  if (navigator.share && cardCanvas) {
     try {
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+      const blob = await new Promise((resolve) => cardCanvas.toBlob(resolve, "image/png"));
       if (blob && navigator.canShare) {
-        const file = new File([blob], "paylink-qr.png", { type: "image/png" });
+        const file = new File([blob], "paylink-card.png", { type: "image/png" });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({ title: "PayLink", text, files: [file] });
           return;
@@ -333,15 +349,14 @@ document.getElementById("shareBtn").addEventListener("click", async () => {
   window.open(waLink, "_blank");
 });
 
-document.getElementById("dlBtn").addEventListener("click", () => {
-  const qrEl = document.getElementById("qrcodeEl");
-  const canvas = qrEl.querySelector("canvas");
-  if (!canvas) { toast("QR கிடைக்கல"); return; }
+document.getElementById("dlBtn").addEventListener("click", async () => {
+  const cardCanvas = await captureReceiptCard();
+  if (!cardCanvas) { toast("Save ஆகல, try again"); return; }
   const link = document.createElement("a");
-  link.download = "paylink-qr-" + Date.now() + ".png";
-  link.href = canvas.toDataURL("image/png");
+  link.download = "paylink-card-" + Date.now() + ".png";
+  link.href = cardCanvas.toDataURL("image/png");
   link.click();
-  toast("QR save ஆச்சு ✓");
+  toast("Card save ஆச்சு ✓");
 });
 
 // ===================== HISTORY =====================
