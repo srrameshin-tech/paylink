@@ -251,8 +251,8 @@ function openReceipt(entry) {
   const link = buildUpiLink(entry);
   new QRCode(qrEl, {
     text: link,
-    width: 160,
-    height: 160,
+    width: 220,
+    height: 220,
     colorDark: "#1A1024",
     colorLight: "#ffffff",
     correctLevel: QRCode.CorrectLevel.M
