@@ -179,6 +179,10 @@ function buildUpiLink({ upi, name, amount, purpose }) {
   return `upi://pay?${params.join("&")}`;
 }
 
+function buildShortLink(entry) {
+  return `https://paylink.sramesh.in/p/?id=${entry.id}`;
+}
+
 function formatRupee(amount) {
   const n = parseFloat(amount);
   if (isNaN(n)) return "₹0";
@@ -287,7 +291,7 @@ function copyTextFallback(text) {
 document.getElementById("copyBtn").addEventListener("click", () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
-  const link = buildUpiLink(entry);
+  const link = buildShortLink(entry);
 
   if (navigator.clipboard && window.isSecureContext) {
     navigator.clipboard.writeText(link).then(() => {
@@ -320,7 +324,7 @@ async function captureReceiptCard() {
 document.getElementById("shareBtn").addEventListener("click", async () => {
   const entry = historyData[activeReceiptId];
   if (!entry) return;
-  const link = buildUpiLink(entry);
+  const link = buildShortLink(entry);
   const text = `*PAYMENT REQUEST*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\nPay using this link:\n${link}`;
 
   const cardCanvas = await captureReceiptCard();
