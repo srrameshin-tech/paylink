@@ -63,6 +63,27 @@
   }
   .btn-paynow:active{transform:translateY(1px);}
   .receipt-foot{text-align:center; font-size:10.5px; color:var(--lav-dim); margin-top:10px; letter-spacing:0.5px;}
+  .btn-confirm{
+    display:block; width:100%; text-align:center; margin-top:10px; padding:11px;
+    border-radius:12px; border:1.5px solid var(--line); background:transparent;
+    color:var(--lav); font-size:13.5px; font-weight:600; cursor:pointer;
+  }
+  .confirm-form{display:none; margin-top:10px;}
+  .confirm-form.show{display:block;}
+  .confirm-form input{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--bg); color:var(--text); font-size:14px; margin-bottom:8px;
+  }
+  .confirm-form .hint{font-size:11px; color:var(--lav-dim); margin:-4px 0 8px;}
+  .confirm-form button{
+    width:100%; padding:11px; border-radius:10px; border:none;
+    background:var(--gold); color:#2A1A0A; font-weight:700; font-size:14px; cursor:pointer;
+  }
+  .confirm-done{
+    text-align:center; margin-top:10px; padding:11px; border-radius:12px;
+    background:rgba(95,217,164,0.1); border:1px solid var(--mint); color:var(--mint);
+    font-size:13px; font-weight:600;
+  }
   .paid-stamp{
     position:absolute; top:42%; left:50%; transform:translate(-50%,-50%) rotate(-18deg);
     border:4px solid var(--mint); color:var(--mint); font-weight:800; font-size:26px;
@@ -109,6 +130,22 @@
     return new URLSearchParams(window.location.search).get(name);
   }
 
+  function escapeHtml(str) {
+    const d = document.createElement("div");
+    d.textContent = str == null ? "" : String(str);
+    return d.innerHTML;
+  }
+
+  async function submitPayerNote(id, utr) {
+    const body = JSON.stringify({ utr, confirmedAt: Date.now() });
+    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/payerNote.json`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body
+    });
+    if (!res.ok) throw new Error("save failed");
+  }
+
   async function loadEntry() {
     const id = getParam("id");
     const root = document.getElementById("root");
@@ -146,6 +183,18 @@
           <div class="qr-box"><div id="qrcodeEl"></div></div>
           <a href="${link}" class="btn-paynow">💳 Pay Now</a>
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
+
+          ${entry.payerNote ? `
+            <div class="confirm-done">✅ Pay பண்ணிட்டேன்னு சொல்லிருக்காங்க · UTR: ${escapeHtml(entry.payerNote.utr || '-')}</div>
+          ` : !isPaid ? `
+            <button class="btn-confirm" id="confirmToggleBtn">✅ Naan Pay Pannitten</button>
+            <div class="confirm-form" id="confirmForm">
+              <input type="text" id="utrInput" placeholder="UTR / Reference Number (UPI app-ல கிடைக்கும்)">
+              <div class="hint">Payment பண்ணின பிறகு UPI app-ல இருக்கும் 12-digit number போடுங்க</div>
+              <button id="confirmSubmitBtn">Submit</button>
+            </div>
+          ` : ''}
+
           ${isPaid ? '<div class="paid-stamp">PAID</div>' : ''}
         </div>
       </div>
@@ -160,6 +209,36 @@
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.M
     });
+
+    const toggleBtn = document.getElementById("confirmToggleBtn");
+    if (toggleBtn) {
+      toggleBtn.addEventListener("click", () => {
+        document.getElementById("confirmForm").classList.toggle("show");
+      });
+    }
+
+    const submitBtn = document.getElementById("confirmSubmitBtn");
+    if (submitBtn) {
+      submitBtn.addEventListener("click", async () => {
+        const id = getParam("id");
+        const utr = document.getElementById("utrInput").value.trim();
+        if (!utr) {
+          alert("UTR number போடுங்க");
+          return;
+        }
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving...";
+        try {
+          await submitPayerNote(id, utr);
+          entry.payerNote = { utr, confirmedAt: Date.now() };
+          renderCard(entry);
+        } catch (e) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Submit";
+          alert("Save ஆகல, மறுபடி try பண்ணுங்க");
+        }
+      });
+    }
   }
 
   loadEntry();
