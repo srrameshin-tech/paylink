@@ -115,6 +115,15 @@
     font-size:17px; color:var(--gold); font-weight:700;
   }
   .amount-input-wrap input{padding-left:34px; font-size:19px; font-weight:700; font-family:'Georgia',serif;}
+  .amount-presets{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;}
+  .amount-chip{
+    padding:7px 14px; border-radius:20px; border:1px solid var(--line);
+    background:var(--card); color:var(--lav); font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .amount-chip:active{transform:scale(0.95);}
+  .amount-chip.active{
+    background:linear-gradient(135deg, var(--gold), var(--coral)); color:#1A1024; border-color:transparent;
+  }
 
   .btn-primary{
     width:100%; padding:16px; border-radius:14px; border:none;
@@ -301,7 +310,8 @@
       </div>
       <div class="field">
         <label>பெயர் (Payee Name)</label>
-        <input type="text" id="inName" placeholder="உங்க பெயர்" autocomplete="off">
+        <input type="text" id="inName" placeholder="உங்க பெயர்" autocomplete="off" list="nameList">
+        <datalist id="nameList"></datalist>
       </div>
       <div class="field">
         <label>தொகை (Amount)</label>
@@ -309,6 +319,7 @@
           <span class="rupee">₹</span>
           <input type="number" id="inAmount" placeholder="0" inputmode="decimal">
         </div>
+        <div class="amount-presets" id="amountPresets"></div>
       </div>
       <div class="field">
         <label>காரணம் (Purpose)</label>
