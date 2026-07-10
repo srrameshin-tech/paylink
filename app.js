@@ -234,6 +234,9 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   // clear form
   document.getElementById("inAmount").value = "";
   document.getElementById("inPurpose").value = "";
+  document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+  populateNameSuggestions();
+  populateAmountPresets();
 });
 
 // ===================== RECEIPT SHEET =====================
@@ -262,6 +265,29 @@ function openReceipt(entry) {
 
   document.getElementById("receiptOverlay").classList.add("active");
 }
+
+// ===================== PAY NOW RETURN NUDGE =====================
+let awaitingPayReturn = false;
+document.getElementById("payNowBtn").addEventListener("click", () => {
+  if (!activeReceiptId) return;
+  const entry = historyData[activeReceiptId];
+  if (entry && entry.status !== "paid") {
+    awaitingPayReturn = true;
+  }
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && awaitingPayReturn) {
+    awaitingPayReturn = false;
+    const entry = historyData[activeReceiptId];
+    if (!entry || entry.status === "paid") return;
+    setTimeout(() => {
+      if (confirm("Pay ஆச்சா? \"OK\" pannunga paid-a mark panna, illa \"Cancel\" pannunga.")) {
+        toggleStatus(entry.id);
+      }
+    }, 400);
+  }
+});
 
 document.getElementById("closeReceiptBtn").addEventListener("click", () => {
   document.getElementById("receiptOverlay").classList.remove("active");
@@ -375,9 +401,59 @@ async function loadHistory() {
     }
     renderHistory();
     renderStats();
+    populateNameSuggestions();
+    populateAmountPresets();
   } catch (e) {
     toast("History load fail ஆச்சு");
   }
+}
+
+function populateNameSuggestions() {
+  const entries = Object.values(historyData).sort((a, b) => b.createdAt - a.createdAt);
+  const seen = new Set();
+  const names = [];
+  entries.forEach(e => {
+    if (e.name && !seen.has(e.name)) {
+      seen.add(e.name);
+      names.push(e.name);
+    }
+  });
+  const list = document.getElementById("nameList");
+  list.innerHTML = names.slice(0, 15).map(n => `<option value="${n}"></option>`).join("");
+}
+
+function populateAmountPresets() {
+  const entries = Object.values(historyData);
+  const counts = {};
+  entries.forEach(e => {
+    const amt = Math.round(e.amount);
+    if (!amt) return;
+    counts[amt] = (counts[amt] || 0) + 1;
+  });
+  let presetAmounts = Object.keys(counts)
+    .sort((a, b) => counts[b] - counts[a])
+    .slice(0, 5)
+    .map(Number);
+
+  // fallback defaults if not enough history yet
+  const defaults = [100, 500, 800, 1000, 2000];
+  defaults.forEach(d => {
+    if (presetAmounts.length < 5 && !presetAmounts.includes(d)) presetAmounts.push(d);
+  });
+  presetAmounts = presetAmounts.slice(0, 5).sort((a, b) => a - b);
+
+  const wrap = document.getElementById("amountPresets");
+  wrap.innerHTML = presetAmounts.map(a =>
+    `<div class="amount-chip" data-amt="${a}">₹${a.toLocaleString("en-IN")}</div>`
+  ).join("");
+
+  wrap.querySelectorAll(".amount-chip").forEach(chip => {
+    chip.addEventListener("click", () => {
+      document.getElementById("inAmount").value = chip.dataset.amt;
+      wrap.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+    });
+  });
 }
 
 function renderStats() {
