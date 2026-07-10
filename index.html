@@ -155,9 +155,13 @@
   .receipt-notch.bottom{top:auto; bottom:-9px; transform:scaleY(-1);}
   .receipt-inner{padding:28px 22px 18px;}
   .receipt-stamp{
-    text-align:center; font-size:12px; letter-spacing:2px; color:var(--gold);
-    text-transform:uppercase; margin-bottom:2px; font-weight:800;
-    text-shadow:0 0 10px rgba(255,201,75,0.6);
+    text-align:center; margin-bottom:8px;
+  }
+  .receipt-stamp span{
+    display:inline-block; background:linear-gradient(135deg, var(--gold), var(--coral));
+    color:#1A1024; font-size:12px; letter-spacing:2px; font-weight:800;
+    text-transform:uppercase; padding:6px 16px; border-radius:20px;
+    box-shadow:0 4px 14px rgba(255,201,75,0.45);
   }
   .receipt-amt{
     text-align:center; font-size:30px; font-weight:800; color:var(--gold);
@@ -348,7 +352,7 @@
       <div class="receipt" id="receiptCard">
         <div class="receipt-notch"></div>
         <div class="receipt-inner">
-          <div class="receipt-stamp">Payment Request</div>
+          <div class="receipt-stamp"><span>Payment Request</span></div>
           <div class="receipt-amt" id="rcAmt">₹0</div>
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val" id="rcName">-</span></div>
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val" id="rcUpi">-</span></div>
