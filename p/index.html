@@ -119,6 +119,7 @@
   const firebaseUrl = "https://kmbsc-chit-default-rtdb.asia-southeast1.firebasedatabase.app";
 
   function formatRupee(amount) {
+    if (amount === null || amount === undefined) return "Amount not fixed — enter in app";
     const n = parseFloat(amount);
     if (isNaN(n)) return "₹0";
     return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
