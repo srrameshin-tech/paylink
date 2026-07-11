@@ -48,7 +48,10 @@
   }
   .receipt-amt{
     text-align:center; font-size:32px; font-weight:800; color:var(--gold);
-    font-family:'Georgia',serif; margin:4px 0 14px;
+    font-family:'Georgia',serif; margin:4px 0 4px;
+  }
+  .receipt-open-note{
+    text-align:center; font-size:12.5px; color:var(--lav-dim); margin:0 0 14px;
   }
   .receipt-line{
     display:flex; justify-content:space-between; align-items:flex-start;
@@ -197,7 +200,8 @@
       <div class="receipt">
         <div class="receipt-inner">
           <div class="receipt-stamp"><span>Payment Request</span></div>
-          <div class="receipt-amt">${formatRupee(entry.amount)}</div>
+          <div class="receipt-amt">${entry.amount === null || entry.amount === undefined ? 'Open Amount' : formatRupee(entry.amount)}</div>
+          ${entry.amount === null || entry.amount === undefined ? '<div class="receipt-open-note">தொகை fix பண்ணல — நீங்க app-ல enter பண்ணிக்கலாம்</div>' : ''}
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val">${entry.name}</span></div>
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val">${entry.upi}</span></div>
           <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val purpose-val">${entry.purpose}</span></div>
