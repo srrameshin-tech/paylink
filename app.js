@@ -184,6 +184,7 @@ function buildShortLink(entry) {
 }
 
 function formatRupee(amount) {
+  if (amount === null || amount === undefined) return "Open Amount";
   const n = parseFloat(amount);
   if (isNaN(n)) return "₹0";
   return "₹" + n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -195,9 +196,18 @@ function formatDate(ts) {
     " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
+document.getElementById("inOpenAmount").addEventListener("change", (e) => {
+  const isOpen = e.target.checked;
+  document.getElementById("amountInputWrap").classList.toggle("disabled", isOpen);
+  document.getElementById("openAmountHint").style.display = isOpen ? "block" : "none";
+  document.getElementById("amountPresets").style.display = isOpen ? "none" : "flex";
+  if (isOpen) document.getElementById("inAmount").value = "";
+});
+
 document.getElementById("genBtn").addEventListener("click", async () => {
   const upi = document.getElementById("inUpi").value.trim();
   const name = document.getElementById("inName").value.trim();
+  const isOpenAmount = document.getElementById("inOpenAmount").checked;
   const amount = document.getElementById("inAmount").value.trim();
   const purpose = document.getElementById("inPurpose").value.trim();
 
@@ -209,13 +219,14 @@ document.getElementById("genBtn").addEventListener("click", async () => {
     toast("Payee பெயர் போடுங்க");
     return;
   }
-  if (!amount || parseFloat(amount) <= 0) {
-    toast("தொகை போடுங்க");
+  if (!isOpenAmount && (!amount || parseFloat(amount) <= 0)) {
+    toast("தொகை போடுங்க (அல்லது Open Amount ON பண்ணுங்க)");
     return;
   }
 
   const entry = {
-    upi, name, amount: parseFloat(amount), purpose: purpose || "Payment",
+    upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
+    purpose: purpose || "Payment",
     createdAt: Date.now(), status: "pending"
   };
 
@@ -234,6 +245,10 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   // clear form
   document.getElementById("inAmount").value = "";
   document.getElementById("inPurpose").value = "";
+  document.getElementById("inOpenAmount").checked = false;
+  document.getElementById("amountInputWrap").classList.remove("disabled");
+  document.getElementById("openAmountHint").style.display = "none";
+  document.getElementById("amountPresets").style.display = "flex";
   document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
   populateNameSuggestions();
   populateAmountPresets();
