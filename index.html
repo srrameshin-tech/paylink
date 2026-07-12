@@ -241,12 +241,13 @@
   }
   .status-chip.pending{background:rgba(242,184,75,0.15); color:var(--gold);}
   .status-chip.paid{background:rgba(95,217,164,0.15); color:var(--mint);}
-  .hist-actions{display:flex; gap:8px; margin-top:12px;}
+  .hist-actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
   .hist-actions button{
-    flex:1; padding:9px; border-radius:10px; border:1px solid var(--line);
+    flex:1 1 calc(50% - 8px); min-width:80px; padding:9px; border-radius:10px; border:1px solid var(--line);
     background:var(--card2); color:var(--text); font-size:12px; font-weight:600;
   }
   .hist-actions button.danger{color:var(--coral);}
+  .hist-actions button.edit-btn{color:var(--gold);}
 
   .empty-state{text-align:center; padding:60px 20px; color:var(--lav-dim);}
   .empty-state .e-ic{font-size:44px; margin-bottom:14px; opacity:0.5;}
