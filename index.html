@@ -175,7 +175,19 @@
     background-size:32px 18px; background-repeat:repeat-x;
   }
   .receipt-notch.bottom{top:auto; bottom:-9px; transform:scaleY(-1);}
-  .receipt-inner{padding:28px 22px 18px;}
+  .receipt-inner{padding:28px 22px 18px; position:relative; overflow:hidden; border-radius:13px;}
+  .receipt-inner::after{
+    content:""; position:absolute; top:-50%; left:-60%; width:35%; height:220%;
+    background:linear-gradient(120deg, transparent, rgba(255,210,122,0.22), rgba(255,255,255,0.08), transparent);
+    transform:rotate(18deg);
+    animation:shimmerSweep 4.5s ease-in-out infinite;
+    pointer-events:none; z-index:1;
+  }
+  @keyframes shimmerSweep{
+    0%{ left:-60%; }
+    45%{ left:130%; }
+    100%{ left:130%; }
+  }
   .receipt-stamp{
     text-align:center; margin-bottom:8px;
   }
@@ -281,6 +293,16 @@
   .switch input:checked + .switch-slider{background:var(--mint);}
   .switch input:checked + .switch-slider::before{transform:translateX(19px);}
   #pcShareBtn.disabled-btn{opacity:0.4; pointer-events:none;}
+
+  .confetti-piece{
+    position:absolute; top:50%; left:50%; width:6px; height:10px;
+    opacity:1; pointer-events:none; z-index:6; border-radius:1px;
+    animation:confettiBurst 900ms cubic-bezier(.15,.6,.3,1) forwards;
+  }
+  @keyframes confettiBurst{
+    0%{ transform:translate(-50%,-50%) rotate(0deg) scale(1); opacity:1; }
+    100%{ transform:translate(var(--tx), var(--ty)) rotate(var(--rot)) scale(0.6); opacity:0; }
+  }
 
   /* ---- history list ---- */
   .hist-item{
