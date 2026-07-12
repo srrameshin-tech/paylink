@@ -196,6 +196,29 @@ function formatDate(ts) {
     " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
 }
 
+let editingId = null;
+
+function editLink(id) {
+  const entry = historyData[id];
+  if (!entry) return;
+  editingId = id;
+
+  document.getElementById("inUpi").value = entry.upi || "";
+  document.getElementById("inName").value = entry.name || "";
+  document.getElementById("inPurpose").value = entry.purpose === "Payment" ? "" : (entry.purpose || "");
+
+  const isOpen = !!entry.openAmount;
+  document.getElementById("inOpenAmount").checked = isOpen;
+  document.getElementById("amountInputWrap").classList.toggle("disabled", isOpen);
+  document.getElementById("openAmountHint").style.display = isOpen ? "block" : "none";
+  document.getElementById("amountPresets").style.display = isOpen ? "none" : "flex";
+  document.getElementById("inAmount").value = isOpen ? "" : (entry.amount ?? "");
+
+  document.getElementById("genBtn").textContent = "✏️ Link-ஐ Update பண்ணு";
+  switchTab("create");
+  toast("Edit mode - details மாத்தி Update பண்ணுங்க");
+}
+
 document.getElementById("inOpenAmount").addEventListener("change", (e) => {
   const isOpen = e.target.checked;
   document.getElementById("amountInputWrap").classList.toggle("disabled", isOpen);
@@ -221,6 +244,40 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   }
   if (!isOpenAmount && (!amount || parseFloat(amount) <= 0)) {
     toast("தொகை போடுங்க (அல்லது Open Amount ON பண்ணுங்க)");
+    return;
+  }
+
+  if (editingId) {
+    const id = editingId;
+    const updates = {
+      upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
+      purpose: purpose || "Payment"
+    };
+    try {
+      await dbUpdate(DB_PATH + "/entries/" + id, updates);
+      historyData[id] = { ...historyData[id], ...updates };
+      toast("Link Update ஆச்சு ✓");
+    } catch (e) {
+      toast("Update fail ஆச்சு, network check பண்ணுங்க");
+      return;
+    }
+    editingId = null;
+    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
+    // clear form
+    document.getElementById("inAmount").value = "";
+    document.getElementById("inPurpose").value = "";
+    document.getElementById("inOpenAmount").checked = false;
+    document.getElementById("amountInputWrap").classList.remove("disabled");
+    document.getElementById("openAmountHint").style.display = "none";
+    document.getElementById("amountPresets").style.display = "flex";
+    document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+    document.getElementById("inUpi").value = "";
+    document.getElementById("inName").value = "";
+    populateNameSuggestions();
+    populateAmountPresets();
+    switchTab("history");
+    renderHistory(document.getElementById("searchInput").value.trim());
+    renderStats();
     return;
   }
 
@@ -496,6 +553,7 @@ function renderHistory(filterText = "") {
       </div>
       <div class="hist-actions">
         <button class="view-btn" data-id="${e.id}">👁️ View</button>
+        <button class="edit-btn" data-id="${e.id}">✏️ Edit</button>
         <button class="toggle-btn" data-id="${e.id}">${e.status === 'paid' ? '↩️ Mark Pending' : '✓ Mark Paid'}</button>
         <button class="danger del-btn" data-id="${e.id}">🗑️ Delete</button>
       </div>
@@ -504,6 +562,9 @@ function renderHistory(filterText = "") {
 
   list.querySelectorAll(".view-btn").forEach(btn => {
     btn.addEventListener("click", () => openReceipt(historyData[btn.dataset.id]));
+  });
+  list.querySelectorAll(".edit-btn").forEach(btn => {
+    btn.addEventListener("click", () => editLink(btn.dataset.id));
   });
   list.querySelectorAll(".toggle-btn").forEach(btn => {
     btn.addEventListener("click", () => toggleStatus(btn.dataset.id));
