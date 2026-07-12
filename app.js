@@ -624,8 +624,24 @@ function showPaidConfirmation(entry) {
   document.getElementById("pcPurpose").textContent = entry.purpose;
   document.getElementById("pcDate").textContent = formatDate(entry.paidAt || Date.now());
   document.getElementById("pcRefId").textContent = entry.refId || "-";
+
+  const shareToggle = document.getElementById("pcShareToggle");
+  const savedPref = localStorage.getItem("pl_shareOnPaid");
+  shareToggle.checked = savedPref === null ? true : savedPref === "1";
+  applyShareToggleState();
+
   document.getElementById("paidConfirmOverlay").classList.add("active");
 }
+
+function applyShareToggleState() {
+  const on = document.getElementById("pcShareToggle").checked;
+  document.getElementById("pcShareBtn").classList.toggle("disabled-btn", !on);
+}
+
+document.getElementById("pcShareToggle").addEventListener("change", (e) => {
+  localStorage.setItem("pl_shareOnPaid", e.target.checked ? "1" : "0");
+  applyShareToggleState();
+});
 
 document.getElementById("closePaidConfirmBtn").addEventListener("click", () => {
   document.getElementById("paidConfirmOverlay").classList.remove("active");
@@ -633,6 +649,7 @@ document.getElementById("closePaidConfirmBtn").addEventListener("click", () => {
 });
 
 document.getElementById("pcShareBtn").addEventListener("click", async () => {
+  if (!document.getElementById("pcShareToggle").checked) return;
   const entry = historyData[activePaidConfirmId];
   if (!entry) return;
   const text = `*PAYMENT RECEIPT*\n―――――――――――\nPaid to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\nDate: ${formatDate(entry.paidAt || Date.now())}\nRef ID: ${entry.refId || "-"}\n―――――――――――\n✅ Payment recorded on PayLink`;
