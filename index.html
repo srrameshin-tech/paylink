@@ -227,6 +227,35 @@
   }
   .receipt-actions button .a-ic{font-size:17px;}
 
+  /* ---- paid confirmation ---- */
+  .confirm-card{
+    background:var(--card); border-radius:20px; padding:26px 20px 18px; text-align:center;
+    position:relative; overflow:hidden; border:1px solid var(--line);
+  }
+  .confirm-card::before{
+    content:""; position:absolute; top:0; left:0; right:0; height:4px;
+    background:linear-gradient(90deg, var(--gold), var(--mint));
+  }
+  .confirm-check{
+    width:60px; height:60px; margin:4px auto 12px; border-radius:50%;
+    background:radial-gradient(circle, rgba(62,232,168,0.22), rgba(62,232,168,0.02));
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .confirm-check .ring{
+    position:absolute; inset:0; border-radius:50%; border:2px solid var(--mint);
+    opacity:0.5; animation:confirmPulse 1.8s ease-out infinite;
+  }
+  @keyframes confirmPulse{0%{transform:scale(0.9); opacity:0.6;} 100%{transform:scale(1.4); opacity:0;}}
+  .confirm-status{color:var(--mint); font-size:12.5px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px;}
+  .confirm-amt{font-size:32px; font-weight:800; color:var(--gold); font-family:'Georgia',serif; margin:4px 0 2px;}
+  .confirm-sub{color:var(--lav); font-size:13px; margin-bottom:16px;}
+  .confirm-details{text-align:left; background:var(--card2); border-radius:14px; padding:12px 16px; margin-bottom:16px;}
+  .confirm-row{display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px dashed var(--line); font-size:13px; gap:10px;}
+  .confirm-row:last-child{border-bottom:none;}
+  .confirm-row .l-key{color:var(--lav); flex-shrink:0;}
+  .confirm-row .l-val{color:var(--text); font-weight:600; text-align:right; word-break:break-word;}
+  .confirm-row .l-val.mono{font-family:'SF Mono',Menlo,monospace; font-size:12px;}
+
   /* ---- history list ---- */
   .hist-item{
     background:var(--card); border-radius:14px; padding:15px 16px; margin-bottom:12px;
@@ -405,6 +434,36 @@
       <button id="dlBtn"><span class="a-ic">⬇️</span>Card Save</button>
     </div>
     <button class="btn-secondary" style="margin-top:10px;" id="closeReceiptBtn">மூடு</button>
+  </div>
+</div>
+
+<!-- PAID CONFIRMATION SHEET -->
+<div class="overlay" id="paidConfirmOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="confirm-card">
+      <div class="confirm-check">
+        <div class="ring"></div>
+        <svg viewBox="0 0 24 24" fill="none" width="30" height="30">
+          <circle cx="12" cy="12" r="11" stroke="#3EE8A8" stroke-width="2"/>
+          <path d="M7 12.5L10.2 15.5L17 8.5" stroke="#3EE8A8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="confirm-status">Payment Recorded</div>
+      <div class="confirm-amt" id="pcAmt">₹0</div>
+      <div class="confirm-sub" id="pcSub">Paid-a mark ஆச்சு</div>
+      <div class="confirm-details">
+        <div class="confirm-row"><span class="l-key">Paid to</span><span class="l-val" id="pcName">-</span></div>
+        <div class="confirm-row"><span class="l-key">UPI ID</span><span class="l-val mono" id="pcUpi">-</span></div>
+        <div class="confirm-row"><span class="l-key">Purpose</span><span class="l-val" id="pcPurpose">-</span></div>
+        <div class="confirm-row"><span class="l-key">Date & Time</span><span class="l-val" id="pcDate">-</span></div>
+        <div class="confirm-row"><span class="l-key">Ref ID</span><span class="l-val mono" id="pcRefId">-</span></div>
+      </div>
+      <div class="receipt-actions">
+        <button id="pcShareBtn"><span class="a-ic">📤</span>Share Receipt</button>
+      </div>
+    </div>
+    <button class="btn-secondary" style="margin-top:10px;" id="closePaidConfirmBtn">மூடு</button>
   </div>
 </div>
 
