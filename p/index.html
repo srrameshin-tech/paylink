@@ -39,15 +39,6 @@
     color:var(--gold); font-size:9px; letter-spacing:3px; opacity:0.55;
   }
   .receipt-inner{padding:28px 22px 22px;}
-  .back-btn{
-    position:absolute; top:14px; left:14px; z-index:5;
-    display:flex; align-items:center; gap:4px;
-    background:rgba(255,255,255,0.08); color:var(--text);
-    border:1px solid rgba(255,255,255,0.18); border-radius:20px;
-    padding:6px 12px; font-size:13px; font-weight:600;
-    text-decoration:none; cursor:pointer;
-  }
-  .back-btn:active{background:rgba(255,255,255,0.18);}
   .receipt-stamp{
     text-align:center; margin-bottom:8px;
   }
@@ -226,7 +217,6 @@
     root.innerHTML = `
       <div class="receipt">
         <div class="receipt-inner">
-          <a href="#" id="backBtn" class="back-btn">← Back</a>
           <div class="receipt-stamp"><span>Payment Request</span></div>
           <div class="receipt-amt">${entry.amount === null || entry.amount === undefined ? 'Open Amount' : formatRupee(entry.amount)}</div>
           ${entry.amount === null || entry.amount === undefined ? '<div class="receipt-open-note">தொகை fix பண்ணல — நீங்க app-ல enter பண்ணிக்கலாம்</div>' : ''}
@@ -261,18 +251,6 @@
       colorLight: "#ffffff",
       correctLevel: QRCode.CorrectLevel.M
     });
-
-    const backBtn = document.getElementById("backBtn");
-    if (backBtn) {
-      backBtn.addEventListener("click", (e) => {
-        e.preventDefault();
-        if (document.referrer && document.referrer.includes(location.hostname)) {
-          history.back();
-        } else {
-          location.href = "https://sramesh.in/";
-        }
-      });
-    }
 
     const toggleBtn = document.getElementById("confirmToggleBtn");
     if (toggleBtn) {
