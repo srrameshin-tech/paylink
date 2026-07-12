@@ -629,6 +629,25 @@ async function toggleStatus(id) {
 
 let activePaidConfirmId = null;
 
+function spawnConfetti(container, count = 18) {
+  const colors = ["#FFC94D", "#3EE8A8", "#FF7A5C", "#FFD27A", "#9C7BFF"];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 60 + Math.random() * 70;
+    const tx = Math.cos(angle) * dist;
+    const ty = Math.sin(angle) * dist - 20;
+    piece.style.setProperty("--tx", `${tx}px`);
+    piece.style.setProperty("--ty", `${ty}px`);
+    piece.style.setProperty("--rot", `${Math.random() * 360 - 180}deg`);
+    piece.style.background = colors[i % colors.length];
+    piece.style.animationDelay = `${Math.random() * 80}ms`;
+    container.appendChild(piece);
+    setTimeout(() => piece.remove(), 1100);
+  }
+}
+
 function showPaidConfirmation(entry) {
   activePaidConfirmId = entry.id;
   document.getElementById("pcAmt").textContent = formatRupee(entry.amount);
@@ -645,6 +664,9 @@ function showPaidConfirmation(entry) {
   applyShareToggleState();
 
   document.getElementById("paidConfirmOverlay").classList.add("active");
+  setTimeout(() => {
+    spawnConfetti(document.querySelector("#paidConfirmOverlay .confirm-check"));
+  }, 150);
 }
 
 function applyShareToggleState() {
