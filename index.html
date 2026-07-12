@@ -256,6 +256,25 @@
   .confirm-row .l-val{color:var(--text); font-weight:600; text-align:right; word-break:break-word;}
   .confirm-row .l-val.mono{font-family:'SF Mono',Menlo,monospace; font-size:12px;}
 
+  .confirm-share-row{
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--card2); border-radius:12px; padding:11px 14px; margin-bottom:10px;
+  }
+  .cs-label{font-size:13.5px; font-weight:600; color:var(--text);}
+  .switch{position:relative; display:inline-block; width:44px; height:25px; flex-shrink:0;}
+  .switch input{opacity:0; width:0; height:0;}
+  .switch-slider{
+    position:absolute; cursor:pointer; inset:0; background:var(--line);
+    border-radius:30px; transition:.2s;
+  }
+  .switch-slider::before{
+    content:""; position:absolute; height:19px; width:19px; left:3px; bottom:3px;
+    background:#fff; border-radius:50%; transition:.2s;
+  }
+  .switch input:checked + .switch-slider{background:var(--mint);}
+  .switch input:checked + .switch-slider::before{transform:translateX(19px);}
+  #pcShareBtn.disabled-btn{opacity:0.4; pointer-events:none;}
+
   /* ---- history list ---- */
   .hist-item{
     background:var(--card); border-radius:14px; padding:15px 16px; margin-bottom:12px;
@@ -458,6 +477,13 @@
         <div class="confirm-row"><span class="l-key">Purpose</span><span class="l-val" id="pcPurpose">-</span></div>
         <div class="confirm-row"><span class="l-key">Date & Time</span><span class="l-val" id="pcDate">-</span></div>
         <div class="confirm-row"><span class="l-key">Ref ID</span><span class="l-val mono" id="pcRefId">-</span></div>
+      </div>
+      <div class="confirm-share-row">
+        <span class="cs-label">📤 Share Receipt</span>
+        <label class="switch">
+          <input type="checkbox" id="pcShareToggle" checked>
+          <span class="switch-slider"></span>
+        </label>
       </div>
       <div class="receipt-actions">
         <button id="pcShareBtn"><span class="a-ic">📤</span>Share Receipt</button>
