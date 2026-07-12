@@ -197,6 +197,13 @@
   .receipt-line .l-key{color:var(--lav); flex-shrink:0;}
   .receipt-line .l-val{color:var(--text); font-weight:600; text-align:right; word-break:break-word;}
   #rcPurpose{color:var(--mint); font-weight:700;}
+  .date-val-wrap{display:flex; align-items:center; gap:6px;}
+  .date-refresh-btn{
+    background:var(--card2); border:1px solid var(--line); border-radius:8px;
+    width:26px; height:26px; font-size:13px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0; padding:0;
+  }
+  .date-refresh-btn:active{transform:rotate(180deg); transition:transform .3s;}
   .qr-box{
     display:flex; justify-content:center; margin:14px 0 6px; padding:16px;
     background:#fff; border-radius:12px;
@@ -438,7 +445,7 @@
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val" id="rcName">-</span></div>
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val" id="rcUpi">-</span></div>
           <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val" id="rcPurpose">-</span></div>
-          <div class="receipt-line"><span class="l-key">Date</span><span class="l-val" id="rcDate">-</span></div>
+          <div class="receipt-line"><span class="l-key">Date</span><span class="date-val-wrap"><span class="l-val" id="rcDate">-</span><button id="rcDateRefresh" class="date-refresh-btn" title="Current date-a update pannu">🔄</button></span></div>
           <div class="qr-box"><div id="qrcodeEl"></div></div>
           <a href="#" id="payNowBtn" class="btn-paynow" target="_blank" rel="noopener">💳 Pay Now</a>
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
