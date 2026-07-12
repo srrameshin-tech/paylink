@@ -344,6 +344,20 @@ document.getElementById("closeReceiptBtn").addEventListener("click", () => {
   renderHistory();
 });
 
+document.getElementById("rcDateRefresh").addEventListener("click", async () => {
+  const entry = historyData[activeReceiptId];
+  if (!entry) return;
+  const now = Date.now();
+  document.getElementById("rcDate").textContent = formatDate(now);
+  try {
+    await dbUpdate(DB_PATH + "/entries/" + entry.id, { createdAt: now });
+    entry.createdAt = now;
+    toast("Date update ஆச்சு ✓");
+  } catch (e) {
+    toast("Update fail ஆச்சு");
+  }
+});
+
 function copyTextFallback(text) {
   const ta = document.createElement("textarea");
   ta.value = text;
