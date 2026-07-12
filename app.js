@@ -580,20 +580,74 @@ function escapeHtml(str) {
   return div.innerHTML;
 }
 
+function generateRefId() {
+  const d = new Date();
+  const yy = String(d.getFullYear()).slice(-2);
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `PL-${yy}${mm}-${rand}`;
+}
+
 async function toggleStatus(id) {
   const entry = historyData[id];
   if (!entry) return;
   const newStatus = entry.status === "paid" ? "pending" : "paid";
+  const updates = { status: newStatus };
+  if (newStatus === "paid") {
+    updates.paidAt = Date.now();
+    if (!entry.refId) updates.refId = generateRefId();
+  }
   try {
-    await dbUpdate(DB_PATH + "/entries/" + id, { status: newStatus });
-    entry.status = newStatus;
+    await dbUpdate(DB_PATH + "/entries/" + id, updates);
+    Object.assign(entry, updates);
     renderHistory(document.getElementById("searchInput").value.trim());
     renderStats();
-    toast(newStatus === "paid" ? "Paid-a mark ஆச்சு ✓" : "Pending-a mark ஆச்சு");
+    if (newStatus === "paid") {
+      toast("Paid-a mark ஆச்சு ✓");
+      showPaidConfirmation(entry);
+    } else {
+      toast("Pending-a mark ஆச்சு");
+    }
   } catch (e) {
     toast("Update fail ஆச்சு");
   }
 }
+
+let activePaidConfirmId = null;
+
+function showPaidConfirmation(entry) {
+  activePaidConfirmId = entry.id;
+  document.getElementById("pcAmt").textContent = formatRupee(entry.amount);
+  document.getElementById("pcSub").textContent = `Paid to ${entry.name} kitta mark ஆச்சு`;
+  document.getElementById("pcName").textContent = entry.name;
+  document.getElementById("pcUpi").textContent = entry.upi;
+  document.getElementById("pcPurpose").textContent = entry.purpose;
+  document.getElementById("pcDate").textContent = formatDate(entry.paidAt || Date.now());
+  document.getElementById("pcRefId").textContent = entry.refId || "-";
+  document.getElementById("paidConfirmOverlay").classList.add("active");
+}
+
+document.getElementById("closePaidConfirmBtn").addEventListener("click", () => {
+  document.getElementById("paidConfirmOverlay").classList.remove("active");
+  activePaidConfirmId = null;
+});
+
+document.getElementById("pcShareBtn").addEventListener("click", async () => {
+  const entry = historyData[activePaidConfirmId];
+  if (!entry) return;
+  const text = `*PAYMENT RECEIPT*\n―――――――――――\nPaid to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\nDate: ${formatDate(entry.paidAt || Date.now())}\nRef ID: ${entry.refId || "-"}\n―――――――――――\n✅ Payment recorded on PayLink`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: "PayLink Receipt", text });
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+  const waLink = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(waLink, "_blank");
+});
 
 async function deleteEntry(id) {
   if (!confirm("இந்த link-ஐ delete பண்ணலாமா?")) return;
