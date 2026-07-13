@@ -93,6 +93,12 @@ function onKeyPress(k) {
     setTimeout(checkPin, 150);
   }
 }
+document.addEventListener('keydown', (e) => {
+  const loginScreen = document.getElementById('loginScreen');
+  if (!loginScreen || !loginScreen.classList.contains('active')) return;
+  if (e.key >= '0' && e.key <= '9') onKeyPress(e.key);
+  else if (e.key === 'Backspace') onKeyPress('⌫');
+});
 
 function renderPinDots() {
   const dots = document.querySelectorAll(".pin-dot");
