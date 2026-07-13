@@ -93,11 +93,18 @@ function onKeyPress(k) {
     setTimeout(checkPin, 150);
   }
 }
+function digitFromKeyEvent(e){
+  if (e.code && /^Digit[0-9]$/.test(e.code)) return e.code.slice(5);
+  if (e.code && /^Numpad[0-9]$/.test(e.code)) return e.code.slice(6);
+  if (e.key >= '0' && e.key <= '9') return e.key;
+  return null;
+}
 document.addEventListener('keydown', (e) => {
   const loginScreen = document.getElementById('loginScreen');
   if (!loginScreen || !loginScreen.classList.contains('active')) return;
-  if (e.key >= '0' && e.key <= '9') onKeyPress(e.key);
-  else if (e.key === 'Backspace') onKeyPress('⌫');
+  const d = digitFromKeyEvent(e);
+  if (d !== null) onKeyPress(d);
+  else if (e.key === 'Backspace' || e.code === 'Backspace') onKeyPress('⌫');
 });
 
 function renderPinDots() {
