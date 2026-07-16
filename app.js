@@ -46,6 +46,19 @@ async function dbDelete(path) {
   return res.json();
 }
 
+// ===================== PIN HASHING (SHA-256, auto-migrates legacy plaintext) =====================
+async function sha256Hex(str) {
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest("SHA-256", enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function isHashFormat(str) { return typeof str === "string" && /^[a-f0-9]{64}$/i.test(str); }
+async function verifyPin(entered, stored) {
+  if (!stored) return false;
+  if (isHashFormat(stored)) return (await sha256Hex(entered)) === stored;
+  return entered === stored; // legacy plaintext fallback
+}
+
 // ===================== STATE =====================
 let currentPinEntry = "";
 let storedPin = null;
@@ -116,8 +129,15 @@ function renderPinDots() {
 
 async function checkPin() {
   const errEl = document.getElementById("loginError");
-  if (currentPinEntry === storedPin) {
+  const ok = await verifyPin(currentPinEntry, storedPin);
+  if (ok) {
     errEl.textContent = "";
+    if (!isHashFormat(storedPin)) {
+      // auto-migrate legacy plaintext PIN to hash
+      const hashed = await sha256Hex(currentPinEntry);
+      storedPin = hashed;
+      dbSet("paymentLinks/_meta/pin", hashed).catch(() => {});
+    }
     enterApp();
   } else {
     errEl.textContent = "தவறான PIN, மறுபடியும் try பண்ணுங்க";
@@ -171,8 +191,9 @@ document.getElementById("recoverBtn").addEventListener("click", async () => {
     return;
   }
   try {
-    await dbSet("paymentLinks/_meta/pin", newPin);
-    storedPin = newPin;
+    const hashedPin = await sha256Hex(newPin);
+    await dbSet("paymentLinks/_meta/pin", hashedPin);
+    storedPin = hashedPin;
     errEl.textContent = "";
     document.getElementById("forgotOverlay").classList.remove("active");
     toast("PIN reset ஆச்சு ✓");
