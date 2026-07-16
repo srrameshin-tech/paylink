@@ -195,9 +195,10 @@
       body: JSON.stringify({ name: name || "Anonymous", confirmedAt: Date.now() })
     });
     if (!res.ok) throw new Error("save failed");
-    const data = await res.json();
-    localStorage.setItem(getMyConfirmKey(id), data.name);
-    return data.name;
+    const data = await res.json(); // Firebase POST response is {name:"<pushId>"} - this IS the push ID, not the person's name
+    const pushId = data.name;
+    localStorage.setItem(getMyConfirmKey(id), pushId);
+    return pushId;
   }
 
   async function removeConfirmation(id, confirmId) {
@@ -244,7 +245,8 @@
 
     const confirmations = entry.confirmations ? Object.entries(entry.confirmations) : [];
     confirmations.sort((a, b) => (a[1].confirmedAt || 0) - (b[1].confirmedAt || 0));
-    const myConfirmedName = localStorage.getItem(getMyConfirmKey(id));
+    const myConfirmId = localStorage.getItem(getMyConfirmKey(id));
+    const myConfirmExists = !!(myConfirmId && entry.confirmations && entry.confirmations[myConfirmId]);
 
     const confirmListHtml = confirmations.length ? `
       <div class="confirm-done">
@@ -257,7 +259,7 @@
             </div>
           `).join("")}
         </div>
-        ${myConfirmedName ? `<div style="margin-top:8px;"><a href="#" id="undoConfirmLink" style="color:var(--coral); font-size:11.5px; text-decoration:underline;">❌ என்னோட confirmation தவறு, Undo பண்ணுங்க</a></div>` : ''}
+        ${myConfirmExists ? `<div style="margin-top:8px;"><a href="#" id="undoConfirmLink" style="color:var(--coral); font-size:11.5px; text-decoration:underline;">❌ என்னோட confirmation தவறு, Undo பண்ணுங்க</a></div>` : ''}
       </div>
     ` : '';
 
@@ -326,9 +328,8 @@
         e.preventDefault();
         undoLink.textContent = "Undo செய்கிறோம்...";
         try {
-          const myName = localStorage.getItem(getMyConfirmKey(id));
-          const match = confirmations.find(([cid, c]) => c.name === myName);
-          if (match) await removeConfirmation(id, match[0]);
+          const myPushId = localStorage.getItem(getMyConfirmKey(id));
+          if (myPushId) await removeConfirmation(id, myPushId);
           const fresh = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}.json`).then(r => r.json());
           renderCard(fresh);
         } catch (err) {
