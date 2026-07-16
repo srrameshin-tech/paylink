@@ -248,10 +248,20 @@ function editLink(id) {
   document.getElementById("amountPresets").style.display = isOpen ? "none" : "flex";
   document.getElementById("inAmount").value = isOpen ? "" : (entry.amount ?? "");
 
+  const hasExpiry = !!entry.expiryDate;
+  document.getElementById("inHasExpiry").checked = hasExpiry;
+  document.getElementById("inExpiryDate").style.display = hasExpiry ? "block" : "none";
+  document.getElementById("inExpiryDate").value = hasExpiry ? entry.expiryDate : "";
+
   document.getElementById("genBtn").textContent = "✏️ Link-ஐ Update பண்ணு";
   switchTab("create");
   toast("Edit mode - details மாத்தி Update பண்ணுங்க");
 }
+
+document.getElementById("inHasExpiry").addEventListener("change", (e) => {
+  document.getElementById("inExpiryDate").style.display = e.target.checked ? "block" : "none";
+  if (!e.target.checked) document.getElementById("inExpiryDate").value = "";
+});
 
 document.getElementById("inOpenAmount").addEventListener("change", (e) => {
   const isOpen = e.target.checked;
@@ -267,6 +277,8 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   const isOpenAmount = document.getElementById("inOpenAmount").checked;
   const amount = document.getElementById("inAmount").value.trim();
   const purpose = document.getElementById("inPurpose").value.trim();
+  const hasExpiry = document.getElementById("inHasExpiry").checked;
+  const expiryDate = hasExpiry ? document.getElementById("inExpiryDate").value : null;
 
   if (!upi || !upi.includes("@")) {
     toast("சரியான UPI ID போடுங்க (e.g. name@upi)");
@@ -280,12 +292,16 @@ document.getElementById("genBtn").addEventListener("click", async () => {
     toast("தொகை போடுங்க (அல்லது Open Amount ON பண்ணுங்க)");
     return;
   }
+  if (hasExpiry && !expiryDate) {
+    toast("Expiry தேதி தேர்வு செய்யுங்க (அல்லது Set Expiry OFF பண்ணுங்க)");
+    return;
+  }
 
   if (editingId) {
     const id = editingId;
     const updates = {
       upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
-      purpose: purpose || "Payment"
+      purpose: purpose || "Payment", expiryDate: expiryDate || null
     };
     try {
       await dbUpdate(DB_PATH + "/entries/" + id, updates);
@@ -307,6 +323,9 @@ document.getElementById("genBtn").addEventListener("click", async () => {
     document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
     document.getElementById("inUpi").value = "";
     document.getElementById("inName").value = "";
+    document.getElementById("inHasExpiry").checked = false;
+    document.getElementById("inExpiryDate").style.display = "none";
+    document.getElementById("inExpiryDate").value = "";
     populateNameSuggestions();
     populateAmountPresets();
     switchTab("history");
@@ -317,7 +336,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
 
   const entry = {
     upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
-    purpose: purpose || "Payment",
+    purpose: purpose || "Payment", expiryDate: expiryDate || null,
     createdAt: Date.now(), status: "pending"
   };
 
@@ -341,6 +360,9 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   document.getElementById("openAmountHint").style.display = "none";
   document.getElementById("amountPresets").style.display = "flex";
   document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("inHasExpiry").checked = false;
+  document.getElementById("inExpiryDate").style.display = "none";
+  document.getElementById("inExpiryDate").value = "";
   populateNameSuggestions();
   populateAmountPresets();
 });
@@ -588,31 +610,39 @@ function renderHistory(filterText = "") {
     return;
   }
 
-  list.innerHTML = entries.map(e => `
+  list.innerHTML = entries.map(e => {
+    const expired = e.status === 'pending' && isExpired(e);
+    return `
     <div class="hist-item" data-id="${e.id}">
       <div class="hist-top">
         <div>
           <div class="hist-amt">${formatRupee(e.amount)}</div>
           <div class="hist-purpose">${escapeHtml(e.purpose)}</div>
           <div class="hist-meta">${escapeHtml(e.upi)} · ${formatDate(e.createdAt)}</div>
+          ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : ''}
           ${e.payerNote ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ Payer said: Paid</div>` : ''}
         </div>
-        <span class="status-chip ${e.status === 'paid' ? 'paid' : 'pending'}">${e.status === 'paid' ? '✓ Paid' : 'Pending'}</span>
+        <span class="status-chip ${e.status === 'paid' ? 'paid' : (expired ? 'expired' : 'pending')}">${e.status === 'paid' ? '✓ Paid' : (expired ? '⏰ Expired' : 'Pending')}</span>
       </div>
       <div class="hist-actions">
         <button class="view-btn" data-id="${e.id}">👁️ View</button>
         <button class="edit-btn" data-id="${e.id}">✏️ Edit</button>
+        ${e.status === 'pending' ? `<button class="remind-btn" data-id="${e.id}">🔔 Reminder</button>` : ''}
         <button class="toggle-btn" data-id="${e.id}">${e.status === 'paid' ? '↩️ Mark Pending' : '✓ Mark Paid'}</button>
         <button class="danger del-btn" data-id="${e.id}">🗑️ Delete</button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   list.querySelectorAll(".view-btn").forEach(btn => {
     btn.addEventListener("click", () => openReceipt(historyData[btn.dataset.id]));
   });
   list.querySelectorAll(".edit-btn").forEach(btn => {
     btn.addEventListener("click", () => editLink(btn.dataset.id));
+  });
+  list.querySelectorAll(".remind-btn").forEach(btn => {
+    btn.addEventListener("click", () => sendReminder(btn.dataset.id));
   });
   list.querySelectorAll(".toggle-btn").forEach(btn => {
     btn.addEventListener("click", () => toggleStatus(btn.dataset.id));
@@ -634,6 +664,21 @@ function generateRefId() {
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `PL-${yy}${mm}-${rand}`;
+}
+
+function isExpired(entry) {
+  if (!entry.expiryDate) return false;
+  const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
+  return Date.now() > expiryEnd;
+}
+
+function sendReminder(id) {
+  const entry = historyData[id];
+  if (!entry) return;
+  const link = buildShortLink(entry);
+  const text = `🔔 *PAYMENT REMINDER*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\n⏳ இன்னும் pay ஆகல, விரைவில் செலுத்தவும் 🙏\n\n${link}`;
+  const waLink = "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(waLink, "_blank");
 }
 
 async function toggleStatus(id) {
