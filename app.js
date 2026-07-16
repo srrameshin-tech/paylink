@@ -391,6 +391,27 @@ function openReceipt(entry) {
 
   document.getElementById("payNowBtn").href = link;
 
+  const infoBox = document.getElementById("rcConfirmInfo");
+  const confirmations = entry.confirmations ? Object.values(entry.confirmations).sort((a, b) => (a.confirmedAt || 0) - (b.confirmedAt || 0)) : [];
+  if (confirmations.length || entry.views) {
+    infoBox.style.display = "block";
+    infoBox.innerHTML = `
+      ${entry.views ? `<div style="font-size:12px; color:var(--lav); margin-bottom:${confirmations.length ? '8px' : '0'};">👀 <b>${entry.views}</b> தடவை link open ஆயிருக்கு</div>` : ''}
+      ${confirmations.length ? `
+        <div style="font-size:12px; color:var(--mint); font-weight:700; margin-bottom:6px;">✅ ${confirmations.length} பேர் "Pay பண்ணிட்டேன்" சொல்லிருக்காங்க:</div>
+        ${confirmations.map(c => `
+          <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-top:1px solid var(--line);">
+            <span>${escapeHtml(c.name || "Anonymous")}</span>
+            <span style="color:var(--lav-dim);">${formatDate(c.confirmedAt)}</span>
+          </div>
+        `).join("")}
+      ` : ''}
+    `;
+  } else {
+    infoBox.style.display = "none";
+    infoBox.innerHTML = "";
+  }
+
   document.getElementById("receiptOverlay").classList.add("active");
 }
 
@@ -652,7 +673,8 @@ function renderHistory(filterText = "") {
           <div class="hist-purpose">${escapeHtml(e.purpose)}</div>
           <div class="hist-meta">${escapeHtml(e.upi)} · ${formatDate(e.createdAt)}</div>
           ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : ''}
-          ${e.payerNote ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ Payer said: Paid</div>` : ''}
+          ${e.confirmations ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ ${Object.keys(e.confirmations).length} பேர் "Pay பண்ணிட்டேன்" சொல்லிருக்காங்க</div>` : ''}
+          ${e.views ? `<div class="hist-meta" style="margin-top:2px;">👀 ${e.views} views</div>` : ''}
         </div>
         <span class="status-chip ${e.status === 'paid' ? 'paid' : (expired ? 'expired' : 'pending')}">${e.status === 'paid' ? '✓ Paid' : (expired ? '⏰ Expired' : 'Pending')}</span>
       </div>
