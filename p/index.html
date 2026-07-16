@@ -209,15 +209,23 @@
     }
   }
 
+  function isExpired(entry) {
+    if (!entry.expiryDate) return false;
+    const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
+    return Date.now() > expiryEnd;
+  }
+
   function renderCard(entry) {
     const root = document.getElementById("root");
     const link = buildUpiLink(entry);
     const isPaid = entry.status === "paid";
+    const expired = !isPaid && isExpired(entry);
 
     root.innerHTML = `
       <div class="receipt">
         <div class="receipt-inner">
           <div class="receipt-stamp"><span>Payment Request</span></div>
+          ${expired ? `<div style="background:rgba(255,107,91,0.15); color:#ff6b6b; border-radius:10px; padding:10px 14px; font-size:13px; font-weight:700; text-align:center; margin-bottom:12px;">⚠️ இந்த payment link-oda validity முடிந்துவிட்டது.<br>தொடர்பு கொண்டு உறுதி செய்யவும்.</div>` : ''}
           <div class="receipt-amt">${entry.amount === null || entry.amount === undefined ? 'Open Amount' : formatRupee(entry.amount)}</div>
           ${entry.amount === null || entry.amount === undefined ? '<div class="receipt-open-note">தொகை fix பண்ணல — நீங்க app-ல enter பண்ணிக்கலாம்</div>' : ''}
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val">${entry.name}</span></div>
