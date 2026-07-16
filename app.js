@@ -575,8 +575,20 @@ function populateAmountPresets() {
   });
 }
 
+let currentStatPeriod = "month";
+let currentStatusFilter = "all";
+
+function isThisMonth(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
 function renderStats() {
-  const entries = Object.values(historyData);
+  let entries = Object.values(historyData);
+  if (currentStatPeriod === "month") {
+    entries = entries.filter(e => isThisMonth(e.createdAt));
+  }
   const total = entries.reduce((s, e) => s + (e.amount || 0), 0);
   const paid = entries.filter(e => e.status === "paid").reduce((s, e) => s + (e.amount || 0), 0);
   const pending = total - paid;
@@ -587,6 +599,22 @@ function renderStats() {
     <div class="stat-card gold"><div class="s-label">Pending</div><div class="s-val">${formatRupee(pending)}</div></div>
   `;
 }
+
+document.querySelectorAll(".period-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentStatPeriod = btn.dataset.period;
+    document.querySelectorAll(".period-btn").forEach(b => b.classList.toggle("active", b === btn));
+    renderStats();
+  });
+});
+
+document.querySelectorAll(".sf-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    currentStatusFilter = btn.dataset.status;
+    document.querySelectorAll(".sf-btn").forEach(b => b.classList.toggle("active", b === btn));
+    renderHistory(document.getElementById("searchInput").value.trim());
+  });
+});
 
 function renderHistory(filterText = "") {
   const list = document.getElementById("historyList");
@@ -601,11 +629,15 @@ function renderHistory(filterText = "") {
     );
   }
 
+  if (currentStatusFilter !== "all") {
+    entries = entries.filter(e => e.status === currentStatusFilter);
+  }
+
   if (entries.length === 0) {
     list.innerHTML = `
       <div class="empty-state">
         <div class="e-ic">🧾</div>
-        <p>இன்னும் payment link எதுவும் இல்ல.<br>Create tab-ல போய் ஒன்னு உருவாக்குங்க.</p>
+        <p>${currentStatusFilter !== "all" ? "இந்த filter-ல எந்த link-உம் இல்ல." : "இன்னும் payment link எதுவும் இல்ல.<br>Create tab-ல போய் ஒன்னு உருவாக்குங்க."}</p>
       </div>`;
     return;
   }
