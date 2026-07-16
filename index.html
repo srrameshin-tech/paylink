@@ -54,6 +54,11 @@
     display:flex; align-items:center; justify-content:center;
     margin:0 auto 14px; font-size:34px; font-weight:400; color:#fff;
     box-shadow:0 8px 24px rgba(255,107,91,0.35);
+    animation:brandPulse 2.4s ease-in-out infinite;
+  }
+  @keyframes brandPulse{
+    0%,100%{ box-shadow:0 8px 24px rgba(255,107,91,0.35); transform:scale(1); }
+    50%{ box-shadow:0 8px 34px rgba(255,107,91,0.65); transform:scale(1.05); }
   }
   .brand h1{margin:0; font-size:26px; letter-spacing:0.5px; font-weight:800;}
   .brand p{margin:6px 0 0; color:var(--lav); font-size:13px;}
