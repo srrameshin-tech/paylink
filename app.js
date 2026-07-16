@@ -672,7 +672,7 @@ function renderHistory(filterText = "") {
           <div class="hist-amt">${formatRupee(e.amount)}</div>
           <div class="hist-purpose">${escapeHtml(e.purpose)}</div>
           <div class="hist-meta">${escapeHtml(e.upi)} · ${formatDate(e.createdAt)}</div>
-          ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : ''}
+          ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : (e.status === 'pending' ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">⏳ ${expired ? `Auto-expired (${AUTO_EXPIRE_DAYS}+ நாள் ஆச்சு)` : `Auto-expires in ${AUTO_EXPIRE_DAYS - Math.floor((Date.now()-e.createdAt)/86400000)} நாள்`}</div>` : '')}
           ${e.confirmations ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ ${Object.keys(e.confirmations).length} பேர் "Pay பண்ணிட்டேன்" சொல்லிருக்காங்க</div>` : ''}
           ${e.views ? `<div class="hist-meta" style="margin-top:2px;">👀 ${e.views} views</div>` : ''}
         </div>
@@ -720,10 +720,17 @@ function generateRefId() {
   return `PL-${yy}${mm}-${rand}`;
 }
 
+const AUTO_EXPIRE_DAYS = 30;
+
 function isExpired(entry) {
-  if (!entry.expiryDate) return false;
-  const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
-  return Date.now() > expiryEnd;
+  if (entry.expiryDate) {
+    const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
+    return Date.now() > expiryEnd;
+  }
+  // No explicit expiry set — auto-expire after AUTO_EXPIRE_DAYS from creation
+  if (!entry.createdAt) return false;
+  const autoExpiryEnd = entry.createdAt + AUTO_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
+  return Date.now() > autoExpiryEnd;
 }
 
 function sendReminder(id) {
