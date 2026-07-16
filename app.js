@@ -754,8 +754,32 @@ document.getElementById("searchInput").addEventListener("input", (e) => {
 });
 
 // ===================== TABS =====================
-document.getElementById("tabCreateBtn").addEventListener("click", () => switchTab("create"));
-document.getElementById("tabHistoryBtn").addEventListener("click", () => switchTab("history"));
+document.getElementById("tabCreateBtn").addEventListener("click", () => {
+  // If user manually navigates to Create tab while an edit was in progress,
+  // cancel the edit so a fresh new entry isn't accidentally saved as an update to the old one.
+  if (editingId) {
+    editingId = null;
+    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
+    document.getElementById("inAmount").value = "";
+    document.getElementById("inPurpose").value = "";
+    document.getElementById("inOpenAmount").checked = false;
+    document.getElementById("amountInputWrap").classList.remove("disabled");
+    document.getElementById("openAmountHint").style.display = "none";
+    document.getElementById("amountPresets").style.display = "flex";
+    document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+    document.getElementById("inUpi").value = "";
+    document.getElementById("inName").value = "";
+  }
+  switchTab("create");
+});
+document.getElementById("tabHistoryBtn").addEventListener("click", () => {
+  // Manually leaving to History also cancels any in-progress edit
+  if (editingId) {
+    editingId = null;
+    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
+  }
+  switchTab("history");
+});
 
 function switchTab(tab) {
   const createTab = document.getElementById("createTab");
