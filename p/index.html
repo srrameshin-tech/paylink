@@ -230,10 +230,16 @@
     }
   }
 
+  const AUTO_EXPIRE_DAYS = 30;
+
   function isExpired(entry) {
-    if (!entry.expiryDate) return false;
-    const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
-    return Date.now() > expiryEnd;
+    if (entry.expiryDate) {
+      const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
+      return Date.now() > expiryEnd;
+    }
+    if (!entry.createdAt) return false;
+    const autoExpiryEnd = entry.createdAt + AUTO_EXPIRE_DAYS * 24 * 60 * 60 * 1000;
+    return Date.now() > autoExpiryEnd;
   }
 
   function renderCard(entry) {
