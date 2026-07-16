@@ -172,21 +172,40 @@
   window.addEventListener("resize", fitToScreen);
   window.addEventListener("orientationchange", fitToScreen);
 
-  async function submitPayerNote(id) {
-    const body = JSON.stringify({ confirmedAt: Date.now() });
-    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/payerNote.json`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body
-    });
-    if (!res.ok) throw new Error("save failed");
+  async function bumpViewCount(id) {
+    try {
+      const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/views.json`);
+      const current = await res.json();
+      await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/views.json`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify((current || 0) + 1)
+      });
+    } catch (e) { /* non-critical, ignore failures */ }
   }
 
-  async function removePayerNote(id) {
-    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/payerNote.json`, {
+  function getMyConfirmKey(id) {
+    return "paylink_myconfirm_" + id;
+  }
+
+  async function submitConfirmation(id, name) {
+    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/confirmations.json`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name || "Anonymous", confirmedAt: Date.now() })
+    });
+    if (!res.ok) throw new Error("save failed");
+    const data = await res.json();
+    localStorage.setItem(getMyConfirmKey(id), data.name);
+    return data.name;
+  }
+
+  async function removeConfirmation(id, confirmId) {
+    const res = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}/confirmations/${confirmId}.json`, {
       method: "DELETE"
     });
     if (!res.ok) throw new Error("delete failed");
+    localStorage.removeItem(getMyConfirmKey(id));
   }
 
   async function loadEntry() {
@@ -204,6 +223,7 @@
         return;
       }
       renderCard(entry);
+      bumpViewCount(id);
     } catch (e) {
       root.innerHTML = '<div class="status-msg">Network error. மறுபடி try பண்ணுங்க.</div>';
     }
@@ -220,6 +240,26 @@
     const link = buildUpiLink(entry);
     const isPaid = entry.status === "paid";
     const expired = !isPaid && isExpired(entry);
+    const id = getParam("id");
+
+    const confirmations = entry.confirmations ? Object.entries(entry.confirmations) : [];
+    confirmations.sort((a, b) => (a[1].confirmedAt || 0) - (b[1].confirmedAt || 0));
+    const myConfirmedName = localStorage.getItem(getMyConfirmKey(id));
+
+    const confirmListHtml = confirmations.length ? `
+      <div class="confirm-done">
+        ✅ <b>${confirmations.length}</b> பேர் pay பண்ணிட்டேன்னு சொல்லிருக்காங்க:
+        <div style="margin-top:8px; text-align:left;">
+          ${confirmations.map(([cid, c]) => `
+            <div style="display:flex; justify-content:space-between; font-size:12px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.08);">
+              <span>${escapeHtml(c.name || "Anonymous")}</span>
+              <span style="color:var(--lav-dim,#9a8fb8);">${formatDate(c.confirmedAt)}</span>
+            </div>
+          `).join("")}
+        </div>
+        ${myConfirmedName ? `<div style="margin-top:8px;"><a href="#" id="undoConfirmLink" style="color:var(--coral); font-size:11.5px; text-decoration:underline;">❌ என்னோட confirmation தவறு, Undo பண்ணுங்க</a></div>` : ''}
+      </div>
+    ` : '';
 
     root.innerHTML = `
       <div class="receipt">
@@ -236,14 +276,8 @@
           <a href="${link}" class="btn-paynow">💳 Pay Now</a>
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
 
-          ${entry.payerNote ? `
-            <div class="confirm-done">
-              ✅ Pay பண்ணிட்டேன்னு சொல்லிட்டாங்க · ${formatDate(entry.payerNote.confirmedAt)}
-              <div><a href="#" id="undoConfirmLink" style="color:var(--coral); font-size:11.5px; text-decoration:underline;">❌ இது தவறு, Undo பண்ணுங்க</a></div>
-            </div>
-          ` : !isPaid ? `
-            <button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>
-          ` : ''}
+          ${confirmListHtml}
+          ${!isPaid ? `<button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>` : ''}
 
           ${isPaid ? '<div class="paid-stamp">PAID</div>' : ''}
         </div>
@@ -270,13 +304,14 @@
     const submitBtn = document.getElementById("confirmSubmitBtn");
     if (submitBtn) {
       submitBtn.addEventListener("click", async () => {
+        const name = prompt("உங்க பேர் என்ன? (Optional, Cancel பண்ணா 'Anonymous' ஆ save ஆகும்)");
+        if (name === null) return; // user pressed Cancel on the prompt itself
         submitBtn.disabled = true;
         submitBtn.textContent = "Saving...";
         try {
-          const id = getParam("id");
-          await submitPayerNote(id);
-          entry.payerNote = { confirmedAt: Date.now() };
-          renderCard(entry);
+          await submitConfirmation(id, name.trim());
+          const fresh = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}.json`).then(r => r.json());
+          renderCard(fresh);
         } catch (e) {
           submitBtn.disabled = false;
           submitBtn.textContent = "✅ Naan Pay Pannitten";
@@ -291,13 +326,14 @@
         e.preventDefault();
         undoLink.textContent = "Undo செய்கிறோம்...";
         try {
-          const id = getParam("id");
-          await removePayerNote(id);
-          delete entry.payerNote;
-          renderCard(entry);
+          const myName = localStorage.getItem(getMyConfirmKey(id));
+          const match = confirmations.find(([cid, c]) => c.name === myName);
+          if (match) await removeConfirmation(id, match[0]);
+          const fresh = await fetch(`${firebaseUrl}/paymentLinks/entries/${id}.json`).then(r => r.json());
+          renderCard(fresh);
         } catch (err) {
           alert("Undo ஆகல, மறுபடி try பண்ணுங்க");
-          undoLink.textContent = "❌ இது தவறு, Undo பண்ணுங்க";
+          undoLink.textContent = "❌ என்னோட confirmation தவறு, Undo பண்ணுங்க";
         }
       });
     }
