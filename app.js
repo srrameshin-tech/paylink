@@ -252,6 +252,7 @@ function editLink(id) {
   document.getElementById("inHasExpiry").checked = hasExpiry;
   document.getElementById("inExpiryDate").style.display = hasExpiry ? "block" : "none";
   document.getElementById("inExpiryDate").value = hasExpiry ? entry.expiryDate : "";
+  document.getElementById("inNeverExpire").checked = !!entry.neverExpire;
 
   document.getElementById("genBtn").textContent = "✏️ Link-ஐ Update பண்ணு";
   switchTab("create");
@@ -261,6 +262,15 @@ function editLink(id) {
 document.getElementById("inHasExpiry").addEventListener("change", (e) => {
   document.getElementById("inExpiryDate").style.display = e.target.checked ? "block" : "none";
   if (!e.target.checked) document.getElementById("inExpiryDate").value = "";
+  if (e.target.checked) document.getElementById("inNeverExpire").checked = false;
+});
+
+document.getElementById("inNeverExpire").addEventListener("change", (e) => {
+  if (e.target.checked) {
+    document.getElementById("inHasExpiry").checked = false;
+    document.getElementById("inExpiryDate").style.display = "none";
+    document.getElementById("inExpiryDate").value = "";
+  }
 });
 
 document.getElementById("inOpenAmount").addEventListener("change", (e) => {
@@ -279,6 +289,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   const purpose = document.getElementById("inPurpose").value.trim();
   const hasExpiry = document.getElementById("inHasExpiry").checked;
   const expiryDate = hasExpiry ? document.getElementById("inExpiryDate").value : null;
+  const neverExpire = document.getElementById("inNeverExpire").checked;
 
   if (!upi || !upi.includes("@")) {
     toast("சரியான UPI ID போடுங்க (e.g. name@upi)");
@@ -301,7 +312,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
     const id = editingId;
     const updates = {
       upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
-      purpose: purpose || "Payment", expiryDate: expiryDate || null
+      purpose: purpose || "Payment", expiryDate: expiryDate || null, neverExpire: neverExpire || false
     };
     try {
       await dbUpdate(DB_PATH + "/entries/" + id, updates);
@@ -326,6 +337,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
     document.getElementById("inHasExpiry").checked = false;
     document.getElementById("inExpiryDate").style.display = "none";
     document.getElementById("inExpiryDate").value = "";
+    document.getElementById("inNeverExpire").checked = false;
     populateNameSuggestions();
     populateAmountPresets();
     switchTab("history");
@@ -336,7 +348,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
 
   const entry = {
     upi, name, amount: isOpenAmount ? null : parseFloat(amount), openAmount: isOpenAmount,
-    purpose: purpose || "Payment", expiryDate: expiryDate || null,
+    purpose: purpose || "Payment", expiryDate: expiryDate || null, neverExpire: neverExpire || false,
     createdAt: Date.now(), status: "pending"
   };
 
@@ -363,6 +375,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
   document.getElementById("inHasExpiry").checked = false;
   document.getElementById("inExpiryDate").style.display = "none";
   document.getElementById("inExpiryDate").value = "";
+  document.getElementById("inNeverExpire").checked = false;
   populateNameSuggestions();
   populateAmountPresets();
 });
@@ -672,7 +685,7 @@ function renderHistory(filterText = "") {
           <div class="hist-amt">${formatRupee(e.amount)}</div>
           <div class="hist-purpose">${escapeHtml(e.purpose)}</div>
           <div class="hist-meta">${escapeHtml(e.upi)} · ${formatDate(e.createdAt)}</div>
-          ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : (e.status === 'pending' ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">⏳ ${expired ? `Auto-expired (${AUTO_EXPIRE_DAYS}+ நாள் ஆச்சு)` : `Auto-expires in ${AUTO_EXPIRE_DAYS - Math.floor((Date.now()-e.createdAt)/86400000)} நாள்`}</div>` : '')}
+          ${e.expiryDate ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">📅 Valid till: ${new Date(e.expiryDate + 'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}${expired ? ' (Expired)' : ''}</div>` : (e.neverExpire ? `<div class="hist-meta" style="margin-top:2px;">♾️ Never Expires</div>` : (e.status === 'pending' ? `<div class="hist-meta" style="${expired ? 'color:#ff6b6b;' : ''}margin-top:2px;">⏳ ${expired ? `Auto-expired (${AUTO_EXPIRE_DAYS}+ நாள் ஆச்சு)` : `Auto-expires in ${AUTO_EXPIRE_DAYS - Math.floor((Date.now()-e.createdAt)/86400000)} நாள்`}</div>` : ''))}
           ${e.confirmations ? `<div class="hist-meta" style="color:var(--mint);margin-top:4px;">✅ ${Object.keys(e.confirmations).length} பேர் "Pay பண்ணிட்டேன்" சொல்லிருக்காங்க</div>` : ''}
           ${e.views ? `<div class="hist-meta" style="margin-top:2px;">👀 ${e.views} views</div>` : ''}
         </div>
@@ -723,6 +736,7 @@ function generateRefId() {
 const AUTO_EXPIRE_DAYS = 30;
 
 function isExpired(entry) {
+  if (entry.neverExpire) return false;
   if (entry.expiryDate) {
     const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
     return Date.now() > expiryEnd;
