@@ -733,11 +733,35 @@ function isExpired(entry) {
   return Date.now() > autoExpiryEnd;
 }
 
-function sendReminder(id) {
+async function sendReminder(id) {
   const entry = historyData[id];
   if (!entry) return;
   const link = buildShortLink(entry);
   const text = `🔔 *PAYMENT REMINDER*\n―――――――――――\nPay to: *${entry.name}*\nAmount: *${formatRupee(entry.amount)}*\nPurpose: *${entry.purpose}*\n―――――――――――\n⏳ இன்னும் pay ஆகல, விரைவில் செலுத்தவும் 🙏\n\n${link}`;
+
+  // Render the receipt card (with QR) off-screen-ready so we can capture it as an image
+  openReceipt(entry);
+  const cardCanvas = await captureReceiptCard();
+  document.getElementById("receiptOverlay").classList.remove("active");
+  activeReceiptId = null;
+
+  if (navigator.share && cardCanvas) {
+    try {
+      const blob = await new Promise((resolve) => cardCanvas.toBlob(resolve, "image/png"));
+      if (blob && navigator.canShare) {
+        const file = new File([blob], "paylink-reminder.png", { type: "image/png" });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({ title: "Payment Reminder", text, files: [file] });
+          return;
+        }
+      }
+      await navigator.share({ title: "Payment Reminder", text });
+      return;
+    } catch (e) {
+      if (e && e.name === "AbortError") return;
+    }
+  }
+
   const waLink = "https://wa.me/?text=" + encodeURIComponent(text);
   window.open(waLink, "_blank");
 }
