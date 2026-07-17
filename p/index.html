@@ -233,6 +233,7 @@
   const AUTO_EXPIRE_DAYS = 30;
 
   function isExpired(entry) {
+    if (entry.neverExpire) return false;
     if (entry.expiryDate) {
       const expiryEnd = new Date(entry.expiryDate + "T23:59:59").getTime();
       return Date.now() > expiryEnd;
