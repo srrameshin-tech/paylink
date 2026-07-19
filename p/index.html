@@ -280,7 +280,7 @@
           <div class="receipt-line"><span class="l-key">Pay to</span><span class="l-val">${entry.name}</span></div>
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val">${entry.upi}</span></div>
           <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val purpose-val">${entry.purpose}</span></div>
-          <div class="receipt-line"><span class="l-key">Date</span><span class="l-val">${formatDate(entry.createdAt)}</span></div>
+          <div class="receipt-line"><span class="l-key">Date</span><span class="l-val">${formatDate(Date.now())}</span></div>
           <div class="qr-box"><div id="qrcodeEl"></div></div>
           <a href="${link}" class="btn-paynow">💳 Pay Now</a>
           <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
