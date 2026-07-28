@@ -454,19 +454,28 @@ function openReceipt(entry) {
   document.getElementById("rcDate").textContent = formatDate(entry.createdAt);
   document.getElementById("paidStampInline").style.display = entry.status === "paid" ? "block" : "none";
 
+  const expired = entry.status === "pending" && isExpired(entry);
   const qrEl = document.getElementById("qrcodeEl");
-  qrEl.innerHTML = "";
   const link = buildUpiLink(entry);
-  new QRCode(qrEl, {
-    text: link,
-    width: 220,
-    height: 220,
-    colorDark: "#1A1024",
-    colorLight: "#ffffff",
-    correctLevel: QRCode.CorrectLevel.M
-  });
-
-  document.getElementById("payNowBtn").href = link;
+  const payNowBtn = document.getElementById("payNowBtn");
+  if(expired){
+    qrEl.innerHTML = '<div style="padding:30px 10px; color:#888; font-size:12px; text-align:center;">Expired — QR வேலை செய்யாது</div>';
+    payNowBtn.removeAttribute("href");
+    payNowBtn.style.opacity = "0.4";
+    payNowBtn.style.pointerEvents = "none";
+  } else {
+    new QRCode(qrEl, {
+      text: link,
+      width: 220,
+      height: 220,
+      colorDark: "#1A1024",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.M
+    });
+    payNowBtn.href = link;
+    payNowBtn.style.opacity = "";
+    payNowBtn.style.pointerEvents = "";
+  }
 
   const infoBox = document.getElementById("rcConfirmInfo");
   const confirmations = entry.confirmations ? Object.values(entry.confirmations).sort((a, b) => (a.confirmedAt || 0) - (b.confirmedAt || 0)) : [];
