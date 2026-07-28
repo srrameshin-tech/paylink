@@ -281,12 +281,14 @@
           <div class="receipt-line"><span class="l-key">UPI ID</span><span class="l-val">${entry.upi}</span></div>
           <div class="receipt-line"><span class="l-key">Purpose</span><span class="l-val purpose-val">${entry.purpose}</span></div>
           <div class="receipt-line"><span class="l-key">Date</span><span class="l-val">${formatDate(Date.now())}</span></div>
-          <div class="qr-box"><div id="qrcodeEl"></div></div>
-          <a href="${link}" class="btn-paynow">💳 Pay Now</a>
-          <div class="receipt-foot">Scan QR illa Pay Now பட்டன் அழுத்துங்க</div>
+          <div class="qr-box">${expired ? '<div style="padding:40px 10px; color:#888; font-size:12.5px; text-align:center;">QR expired ஆச்சு<br>work ஆகாது</div>' : '<div id="qrcodeEl"></div>'}</div>
+          ${expired
+            ? `<span class="btn-paynow" style="opacity:0.4; pointer-events:none; cursor:not-allowed;">💳 Pay Now (Expired)</span>`
+            : `<a href="${link}" class="btn-paynow">💳 Pay Now</a>`}
+          <div class="receipt-foot">${expired ? 'இந்த link expire ஆயிடுச்சு — தொடர்பு கொள்ளுங்க' : 'Scan QR illa Pay Now பட்டன் அழுத்துங்க'}</div>
 
           ${confirmListHtml}
-          ${!isPaid ? `<button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>` : ''}
+          ${(!isPaid && !expired) ? `<button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>` : ''}
 
           ${isPaid ? '<div class="paid-stamp">PAID</div>' : ''}
         </div>
@@ -294,14 +296,16 @@
       <div class="brand-foot">PayLink · sramesh.in</div>
     `;
 
-    new QRCode(document.getElementById("qrcodeEl"), {
-      text: link,
-      width: 170,
-      height: 170,
-      colorDark: "#1A1024",
-      colorLight: "#ffffff",
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    if(!expired){
+      new QRCode(document.getElementById("qrcodeEl"), {
+        text: link,
+        width: 170,
+        height: 170,
+        colorDark: "#1A1024",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
 
     const toggleBtn = document.getElementById("confirmToggleBtn");
     if (toggleBtn) {
