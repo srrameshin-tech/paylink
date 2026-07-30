@@ -319,9 +319,35 @@ function editLink(id) {
   document.getElementById("inNeverExpire").checked = !!entry.neverExpire;
 
   document.getElementById("genBtn").textContent = "✏️ Link-ஐ Update பண்ணு";
+  document.getElementById("cancelEditBtn").style.display = "block";
   switchTab("create");
   toast("Edit mode - details மாத்தி Update பண்ணுங்க");
 }
+
+function cancelEditMode() {
+  editingId = null;
+  document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
+  document.getElementById("cancelEditBtn").style.display = "none";
+  document.getElementById("inAmount").value = "";
+  document.getElementById("inPurpose").value = "";
+  document.getElementById("inOpenAmount").checked = false;
+  document.getElementById("amountInputWrap").classList.remove("disabled");
+  document.getElementById("openAmountHint").style.display = "none";
+  document.getElementById("amountPresets").style.display = "flex";
+  document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
+  document.getElementById("inUpi").value = "";
+  document.getElementById("inName").value = "";
+  document.getElementById("inHasExpiry").checked = false;
+  document.getElementById("inExpiryDate").style.display = "none";
+  document.getElementById("inExpiryDate").value = "";
+  document.getElementById("inNeverExpire").checked = false;
+  populateNameSuggestions();
+  populateAmountPresets();
+}
+document.getElementById("cancelEditBtn").addEventListener("click", () => {
+  cancelEditMode();
+  toast("Edit cancel ஆச்சு");
+});
 
 document.getElementById("inHasExpiry").addEventListener("change", (e) => {
   document.getElementById("inExpiryDate").style.display = e.target.checked ? "block" : "none";
@@ -386,24 +412,7 @@ document.getElementById("genBtn").addEventListener("click", async () => {
       toast("Update fail ஆச்சு, network check பண்ணுங்க");
       return;
     }
-    editingId = null;
-    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
-    // clear form
-    document.getElementById("inAmount").value = "";
-    document.getElementById("inPurpose").value = "";
-    document.getElementById("inOpenAmount").checked = false;
-    document.getElementById("amountInputWrap").classList.remove("disabled");
-    document.getElementById("openAmountHint").style.display = "none";
-    document.getElementById("amountPresets").style.display = "flex";
-    document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
-    document.getElementById("inUpi").value = "";
-    document.getElementById("inName").value = "";
-    document.getElementById("inHasExpiry").checked = false;
-    document.getElementById("inExpiryDate").style.display = "none";
-    document.getElementById("inExpiryDate").value = "";
-    document.getElementById("inNeverExpire").checked = false;
-    populateNameSuggestions();
-    populateAmountPresets();
+    cancelEditMode();
     switchTab("history");
     renderHistory(document.getElementById("searchInput").value.trim());
     renderStats();
@@ -975,25 +984,14 @@ document.getElementById("tabCreateBtn").addEventListener("click", () => {
   // If user manually navigates to Create tab while an edit was in progress,
   // cancel the edit so a fresh new entry isn't accidentally saved as an update to the old one.
   if (editingId) {
-    editingId = null;
-    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
-    document.getElementById("inAmount").value = "";
-    document.getElementById("inPurpose").value = "";
-    document.getElementById("inOpenAmount").checked = false;
-    document.getElementById("amountInputWrap").classList.remove("disabled");
-    document.getElementById("openAmountHint").style.display = "none";
-    document.getElementById("amountPresets").style.display = "flex";
-    document.querySelectorAll(".amount-chip").forEach(c => c.classList.remove("active"));
-    document.getElementById("inUpi").value = "";
-    document.getElementById("inName").value = "";
+    cancelEditMode();
   }
   switchTab("create");
 });
 document.getElementById("tabHistoryBtn").addEventListener("click", () => {
   // Manually leaving to History also cancels any in-progress edit
   if (editingId) {
-    editingId = null;
-    document.getElementById("genBtn").textContent = "QR & Link Generate பண்ணு";
+    cancelEditMode();
   }
   switchTab("history");
 });
