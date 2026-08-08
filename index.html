@@ -7,6 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="app-build" content="20260808-0734">
 <title>PayLink</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -83,6 +84,13 @@
     z-index:10; border-bottom:1px solid var(--line);
   }
   .topbar h2{margin:0; font-size:19px; font-weight:800;}
+  .admin-badge{
+    font-size:12px; font-weight:700; padding:5px 11px; border-radius:999px;
+    background:rgba(255,107,91,0.16); color:var(--coral); border:1px solid rgba(255,107,91,0.4);
+    white-space:nowrap; margin-left:auto; margin-right:10px;
+  }
+  .admin-badge.ok{ background:rgba(94,214,143,0.16); color:#5ED68F; border-color:rgba(94,214,143,0.45); }
+  .admin-note{ font-size:14px; line-height:1.55; opacity:.85; margin:0 0 14px; }
   .icon-btn{
     width:38px; height:38px; border-radius:10px; background:var(--card);
     border:1px solid var(--line); display:flex; align-items:center; justify-content:center;
@@ -412,6 +420,7 @@
   <div id="createTab" class="tab-content">
     <div class="topbar">
       <h2>PayLink</h2>
+      <div class="admin-badge" id="adminBadge">படிக்க மட்டும்</div>
       <div class="icon-btn" id="lockBtn">🔒</div>
     </div>
     <div class="content">
@@ -576,11 +585,8 @@
 <div class="overlay" id="forgotOverlay">
   <div class="sheet">
     <div class="sheet-handle"></div>
-    <h3>PIN Recovery</h3>
-    <div class="field">
-      <label>Secret Recovery Code</label>
-      <input type="text" id="recoveryCodeInput" placeholder="Recovery code போடுங்க" autocomplete="off">
-    </div>
+    <h3>PIN மாத்த</h3>
+    <p class="admin-note">நிர்வாகியா login ஆனதுக்கு அப்புறம் மட்டும் PIN மாத்த முடியும்.</p>
     <div class="field">
       <label>புது PIN (4 digits)</label>
       <input type="text" id="newPinInput" placeholder="••••" inputmode="numeric" maxlength="4">
@@ -591,10 +597,30 @@
   </div>
 </div>
 
+<!-- ADMIN SIGN-IN SHEET -->
+<div class="overlay" id="adminOverlay">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <h3>நிர்வாகி Login</h3>
+    <p class="admin-note" id="adminNote">Link உருவாக்க, மாத்த, அழிக்க நிர்வாகி login தேவை.</p>
+    <div class="field">
+      <label>மெயில்</label>
+      <input type="email" id="adminEmailInput" placeholder="mail@example.com" autocomplete="username" inputmode="email">
+    </div>
+    <div class="field">
+      <label>கடவுச்சொல்</label>
+      <input type="password" id="adminPassInput" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div class="login-error" id="adminError"></div>
+    <button class="btn-primary" id="adminLoginBtn">உள்நுழை</button>
+    <button class="btn-secondary" style="margin-top:10px;" id="adminCancelBtn">Cancel</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="qrcode.min.js?v=2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="app.js?v=2"></script>
+<script src="app.js?v=20260808-0734"></script>
 </body>
 </html>
