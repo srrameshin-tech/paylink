@@ -4,42 +4,127 @@ const firebaseConfig = {
   databaseURL: "https://kmbsc-chit-default-rtdb.asia-southeast1.firebasedatabase.app"
 };
 
-const MASTER_PIN_DEFAULT = "1973";
-const RECOVERY_CODE = "TEMPLE2026";
 const DB_PATH = "paymentLinks";
-
-// ===================== FIREBASE (REST, no SDK needed) =====================
 const DB_BASE = firebaseConfig.databaseURL;
 
-async function dbGet(path) {
-  const res = await fetch(`${DB_BASE}/${path}.json`);
-  if (!res.ok) throw new Error("DB GET failed");
-  return res.json();
+// ===================== AUTH (Firebase REST: anonymous baseline + admin sign-in) =====================
+const IDP   = "https://identitytoolkit.googleapis.com/v1/accounts";
+const STS   = "https://securetoken.googleapis.com/v1/token";
+const LS_RT = "plk_rt_v1";
+
+let idToken     = null;
+let tokenExpiry = 0;
+let isAdmin     = false;
+
+function saveRefresh(rt, admin) {
+  try { localStorage.setItem(LS_RT, JSON.stringify({ rt: rt, admin: !!admin })); } catch (e) {}
 }
-async function dbSet(path, value) {
-  const res = await fetch(`${DB_BASE}/${path}.json`, {
-    method: "PUT",
-    body: JSON.stringify(value)
-  });
-  if (!res.ok) throw new Error("DB SET failed");
-  return res.json();
+function loadRefresh() {
+  try { return JSON.parse(localStorage.getItem(LS_RT) || "null"); } catch (e) { return null; }
 }
-async function dbPush(path, value) {
-  const res = await fetch(`${DB_BASE}/${path}.json`, {
+function clearRefresh() { try { localStorage.removeItem(LS_RT); } catch (e) {} }
+
+function applyToken(idt, expiresIn, admin) {
+  idToken = idt;
+  tokenExpiry = Date.now() + (Number(expiresIn || 3600) * 1000);
+  if (admin !== undefined) isAdmin = !!admin;
+}
+
+async function signInAnon() {
+  const res = await fetch(IDP + ":signUp?key=" + firebaseConfig.apiKey, {
     method: "POST",
-    body: JSON.stringify(value)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ returnSecureToken: true })
   });
-  if (!res.ok) throw new Error("DB PUSH failed");
-  return res.json();
+  if (!res.ok) throw new Error("anon signin failed");
+  const d = await res.json();
+  applyToken(d.idToken, d.expiresIn, false);
+  saveRefresh(d.refreshToken, false);
+  return idToken;
 }
-async function dbUpdate(path, value) {
-  const res = await fetch(`${DB_BASE}/${path}.json`, {
-    method: "PATCH",
-    body: JSON.stringify(value)
+
+async function signInAdmin(email, password) {
+  const res = await fetch(IDP + ":signInWithPassword?key=" + firebaseConfig.apiKey, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email: email, password: password, returnSecureToken: true })
   });
-  if (!res.ok) throw new Error("DB UPDATE failed");
-  return res.json();
+  const d = await res.json().catch(function () { return {}; });
+  if (!res.ok) {
+    const code = (d.error && d.error.message) || "UNKNOWN";
+    console.warn("[auth] admin sign-in rejected:", code);
+    const err = new Error("admin signin failed");
+    err.code = code;
+    throw err;
+  }
+  applyToken(d.idToken, d.expiresIn, true);
+  saveRefresh(d.refreshToken, true);
+  return idToken;
 }
+
+async function refreshWith(rt, admin) {
+  const res = await fetch(STS + "?key=" + firebaseConfig.apiKey, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(rt)
+  });
+  if (!res.ok) throw new Error("refresh failed");
+  const d = await res.json();
+  applyToken(d.id_token, d.expires_in, admin);
+  saveRefresh(d.refresh_token, admin);
+  return idToken;
+}
+
+// Never throws. Returns a token or null. Callers stay quiet; console only.
+async function getToken(force) {
+  if (!force && idToken && Date.now() < tokenExpiry - 60000) return idToken;
+  const saved = loadRefresh();
+  if (saved && saved.rt) {
+    try { return await refreshWith(saved.rt, saved.admin); }
+    catch (e) { console.warn("[auth] refresh failed, falling back to anonymous"); clearRefresh(); }
+  }
+  try { return await signInAnon(); }
+  catch (e) { console.warn("[auth] anonymous sign-in failed"); return null; }
+}
+
+async function signOutAdmin() {
+  clearRefresh();
+  idToken = null; tokenExpiry = 0; isAdmin = false;
+  await getToken(true);
+}
+
+// ===================== FIREBASE (REST, auth-aware, silent single retry) =====================
+async function dbFetch(path, opts, label) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const tok = await getToken(attempt === 1);
+    const url = DB_BASE + "/" + path + ".json" + (tok ? "?auth=" + encodeURIComponent(tok) : "");
+    let res;
+    try {
+      res = await fetch(url, opts);
+    } catch (netErr) {
+      console.warn("[db] " + label + " network error on " + path, netErr);
+      if (attempt === 1) { const e = new Error(label + " failed"); e.network = true; throw e; }
+      continue;
+    }
+    if (res.ok) return res.json();
+    console.warn("[db] " + label + " -> HTTP " + res.status + " on " + path);
+    if ((res.status === 401 || res.status === 403) && attempt === 0) continue;
+    const err = new Error(label + " failed");
+    err.status = res.status;
+    err.denied = (res.status === 401 || res.status === 403);
+    throw err;
+  }
+  throw new Error(label + " failed");
+}
+
+function jsonOpts(method, value) {
+  return { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(value) };
+}
+
+async function dbGet(path)           { return dbFetch(path, undefined, "DB GET"); }
+async function dbSet(path, value)    { return dbFetch(path, jsonOpts("PUT", value),   "DB SET"); }
+async function dbPush(path, value)   { return dbFetch(path, jsonOpts("POST", value),  "DB PUSH"); }
+async function dbUpdate(path, value) { return dbFetch(path, jsonOpts("PATCH", value), "DB UPDATE"); }
 
 // ===================== AUTO CHECK: background error/crash logger =====================
 let errorLogQueue = [];
@@ -103,11 +188,7 @@ function showAutoCheckPopup(entries){
     overlay.remove();
   });
 }
-async function dbDelete(path) {
-  const res = await fetch(`${DB_BASE}/${path}.json`, { method: "DELETE" });
-  if (!res.ok) throw new Error("DB DELETE failed");
-  return res.json();
-}
+async function dbDelete(path) { return dbFetch(path, { method: "DELETE" }, "DB DELETE"); }
 
 // ===================== PIN HASHING (SHA-256, auto-migrates legacy plaintext) =====================
 async function sha256Hex(str) {
@@ -125,6 +206,26 @@ async function verifyPin(entered, stored) {
 // ===================== STATE =====================
 let currentPinEntry = "";
 let storedPin = null;
+let pinReady = false;
+
+// Keypad stays locked until the real PIN hash has actually arrived from Firebase.
+function setLoginLoading(loading, msg) {
+  const sub = document.getElementById("loginSub");
+  const kp  = document.getElementById("keypad");
+  const err = document.getElementById("loginError");
+  if (loading) {
+    if (sub) sub.textContent = "Loading…";
+    if (kp) { kp.style.opacity = "0.45"; kp.style.pointerEvents = "none"; }
+    if (err) err.textContent = "";
+    return;
+  }
+  if (sub) sub.textContent = pinReady ? "PIN போடுங்க" : "ஒரு நிமிஷம்…";
+  if (kp) {
+    kp.style.opacity = pinReady ? "1" : "0.45";
+    kp.style.pointerEvents = pinReady ? "auto" : "none";
+  }
+  if (err) err.textContent = msg || "";
+}
 let historyData = {}; // id -> entry
 let activeReceiptId = null; // currently open receipt (for share/copy/dl/mark paid)
 
@@ -192,6 +293,12 @@ function renderPinDots() {
 
 async function checkPin() {
   const errEl = document.getElementById("loginError");
+  if (!pinReady || !storedPin) {
+    errEl.textContent = "Loading…";
+    currentPinEntry = "";
+    renderPinDots();
+    return;
+  }
   const ok = await verifyPin(currentPinEntry, storedPin);
   if (ok) {
     errEl.textContent = "";
@@ -215,7 +322,9 @@ async function checkPin() {
 function enterApp() {
   document.getElementById("loginScreen").classList.remove("active");
   document.getElementById("mainScreen").classList.add("active");
+  updateAdminBadge();
   loadHistory();
+  if (!isAdmin) setTimeout(function () { openAdminOverlay(); }, 400);
   setTimeout(runAutoCheckDigest, 2000);
 }
 
@@ -227,27 +336,108 @@ function lockApp() {
 }
 
 // ===================== PIN SETUP / RECOVERY =====================
+// A failed read must never unlock the app with a default PIN.
 async function initPin() {
-  try {
-    const data = await dbGet("paymentLinks/_meta/pin");
-    storedPin = data || MASTER_PIN_DEFAULT;
-  } catch (e) {
-    storedPin = MASTER_PIN_DEFAULT;
+  setLoginLoading(true);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    let data = null;
+    try {
+      data = await dbGet(DB_PATH + "/_meta/pin");
+    } catch (e) {
+      console.warn("[pin] _meta/pin read failed", e.status || e.message);
+    }
+    if (!data) {
+      try {
+        data = await dbGet("masterPinHash");
+      } catch (e) {
+        console.warn("[pin] masterPinHash read failed", e.status || e.message);
+      }
+    }
+    if (data) {
+      storedPin = data;
+      pinReady = true;
+      setLoginLoading(false);
+      return;
+    }
+    await new Promise(function (r) { setTimeout(r, 900 * (attempt + 1)); });
   }
+  pinReady = false;
+  setLoginLoading(false, "இணைப்பு கிடைக்கல, கொஞ்சம் கழிச்சு try பண்ணுங்க");
+  logAppError("pin-load", "PIN hash could not be loaded after 3 attempts");
+}
+
+async function retryPinLoad() {
+  if (pinReady) return;
+  await initPin();
 }
 
 document.getElementById("forgotLink").addEventListener("click", () => {
+  if (!isAdmin) { openAdminOverlay("PIN மாத்த நிர்வாகி login தேவை."); return; }
+  document.getElementById("recoveryError").textContent = "";
   document.getElementById("forgotOverlay").classList.add("active");
 });
 document.getElementById("closeForgotBtn").addEventListener("click", () => {
   document.getElementById("forgotOverlay").classList.remove("active");
 });
+function friendlyAuthMessage(code) {
+  if (code === "EMAIL_NOT_FOUND" || code === "INVALID_PASSWORD" || code === "INVALID_LOGIN_CREDENTIALS")
+    return "மெயில் அல்லது கடவுச்சொல் சரியில்ல";
+  if (code === "USER_DISABLED") return "இந்தக் கணக்கு முடக்கப்பட்டிருக்கு";
+  if (String(code).indexOf("TOO_MANY_ATTEMPTS") === 0) return "நிறைய முறை try பண்ணிட்டீங்க, கொஞ்சம் கழிச்சு பாருங்க";
+  return "இப்போ login பண்ண முடியல, கொஞ்சம் கழிச்சு try பண்ணுங்க";
+}
+
+function openAdminOverlay(reason) {
+  const ov = document.getElementById("adminOverlay");
+  if (!ov) return;
+  const note = document.getElementById("adminNote");
+  if (note) note.textContent = reason || "Link உருவாக்க, மாத்த, அழிக்க நிர்வாகி login தேவை.";
+  const errEl = document.getElementById("adminError");
+  if (errEl) errEl.textContent = "";
+  ov.classList.add("active");
+}
+
+function updateAdminBadge() {
+  const b = document.getElementById("adminBadge");
+  if (!b) return;
+  b.textContent = isAdmin ? "நிர்வாகி ✓" : "படிக்க மட்டும்";
+  b.className = "admin-badge" + (isAdmin ? " ok" : "");
+}
+
+document.getElementById("adminLoginBtn").addEventListener("click", async () => {
+  const email  = document.getElementById("adminEmailInput").value.trim();
+  const pass   = document.getElementById("adminPassInput").value;
+  const errEl  = document.getElementById("adminError");
+  const btn    = document.getElementById("adminLoginBtn");
+  if (!email || !pass) { errEl.textContent = "மெயிலும் கடவுச்சொல்லும் போடுங்க"; return; }
+  btn.disabled = true; btn.textContent = "Login ஆகுது…";
+  try {
+    await signInAdmin(email, pass);
+    errEl.textContent = "";
+    document.getElementById("adminPassInput").value = "";
+    document.getElementById("adminOverlay").classList.remove("active");
+    updateAdminBadge();
+    toast("நிர்வாகி login ஆச்சு ✓");
+    loadHistory();
+  } catch (e) {
+    errEl.textContent = friendlyAuthMessage(e.code);
+    logAppError("admin-login", e.code || "unknown");
+  } finally {
+    btn.disabled = false; btn.textContent = "உள்நுழை";
+  }
+});
+
+document.getElementById("adminCancelBtn").addEventListener("click", () => {
+  document.getElementById("adminOverlay").classList.remove("active");
+});
+
 document.getElementById("recoverBtn").addEventListener("click", async () => {
-  const code = document.getElementById("recoveryCodeInput").value.trim();
   const newPin = document.getElementById("newPinInput").value.trim();
-  const errEl = document.getElementById("recoveryError");
-  if (code !== RECOVERY_CODE) {
-    errEl.textContent = "Recovery code தவறு";
+  const errEl  = document.getElementById("recoveryError");
+  if (!isAdmin) {
+    errEl.textContent = "முதல்ல நிர்வாகி login பண்ணுங்க";
+    document.getElementById("forgotOverlay").classList.remove("active");
+    openAdminOverlay("PIN மாத்த நிர்வாகி login தேவை.");
     return;
   }
   if (!/^\d{4}$/.test(newPin)) {
@@ -256,13 +446,16 @@ document.getElementById("recoverBtn").addEventListener("click", async () => {
   }
   try {
     const hashedPin = await sha256Hex(newPin);
-    await dbSet("paymentLinks/_meta/pin", hashedPin);
+    await dbSet(DB_PATH + "/_meta/pin", hashedPin);
     storedPin = hashedPin;
+    pinReady = true;
     errEl.textContent = "";
+    document.getElementById("newPinInput").value = "";
     document.getElementById("forgotOverlay").classList.remove("active");
-    toast("PIN reset ஆச்சு ✓");
+    toast("PIN மாறிடுச்சு ✓");
   } catch (e) {
-    errEl.textContent = "Network error, try again";
+    errEl.textContent = e.denied ? "இதுக்கு அனுமதி இல்ல" : "இப்போ சேமிக்க முடியல, மறுபடியும் try பண்ணுங்க";
+    logAppError("pin-reset", e.status || e.message);
   }
 });
 
@@ -1024,7 +1217,17 @@ document.getElementById("lockBtn2").addEventListener("click", lockApp);
 (async function init() {
   buildKeypad();
   renderPinDots();
+  setLoginLoading(true);
+
+  const saved = loadRefresh();
+  isAdmin = !!(saved && saved.admin);
+  await getToken(false);          // anonymous baseline or restored admin session
+  updateAdminBadge();
+
   await initPin();
+
+  const sub = document.getElementById("loginSub");
+  if (sub && !pinReady) sub.addEventListener("click", retryPinLoad);
 
   // PWA install support
   if ("serviceWorker" in navigator) {
