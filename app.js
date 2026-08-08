@@ -323,8 +323,8 @@ function enterApp() {
   document.getElementById("loginScreen").classList.remove("active");
   document.getElementById("mainScreen").classList.add("active");
   updateAdminBadge();
-  loadHistory();
-  if (!isAdmin) setTimeout(function () { openAdminOverlay(); }, 400);
+  if (isAdmin) loadHistory();
+  else setTimeout(function () { openAdminOverlay(); }, 400);
   setTimeout(runAutoCheckDigest, 2000);
 }
 
@@ -832,7 +832,8 @@ async function loadHistory() {
     populateNameSuggestions();
     populateAmountPresets();
   } catch (e) {
-    toast("History load fail ஆச்சு");
+    console.warn("[history] load failed", e.status || e.message);
+    if (isAdmin) toast("History load ஆகல, மறுபடியும் try பண்ணுங்க");
   }
 }
 
