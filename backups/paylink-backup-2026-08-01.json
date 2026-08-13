@@ -1,68 +1,55 @@
 {
-  "_meta": {
-    "pin": "9baed8fceea6e36d36670d72429d909547165efc038c293a14a41ef2edf83141"
-  },
   "entries": {
     "-Ox5BW60AEyGmJOwuFrH": {
       "amount": 800,
       "createdAt": 1784255534523,
-      "name": "Senthamizh Selvi Jayakumar",
       "neverExpire": true,
       "openAmount": false,
       "paidAt": 1784242712170,
       "purpose": "Kovil monthly Contribution",
       "refId": "PL-2607-3489",
       "status": "pending",
-      "upi": "9994869502@kotak",
       "views": 9
     },
     "-Ox6Vl56kB4kyl5SNI4Y": {
       "amount": 8400,
       "createdAt": 1785422888365,
       "expiryDate": "2026-08-19",
-      "name": "Senthamizh Selvi Jayakumar",
       "neverExpire": false,
       "openAmount": false,
       "paidAt": 1783857587797,
       "purpose": "Aug 2026 – Month 8 | ₹8,400  Pay before 19.07.2026",
       "refId": "PL-2607-4116",
       "status": "pending",
-      "upi": "9994869502@kotak",
       "views": 5
     },
     "-OxH0lS5kqpMTEnio1HN": {
       "createdAt": 1785500972091,
-      "name": "Senthamizh Selvi Jayakumar",
       "neverExpire": true,
       "openAmount": true,
       "paidAt": 1783857574449,
       "purpose": "Payment",
       "refId": "PL-2607-3484",
-      "status": "pending",
-      "upi": "paymentss@kotak"
+      "status": "pending"
     },
     "-OxJreZ79F9VcQg0TaG-": {
       "amount": 250,
       "createdAt": 1785423605553,
-      "name": "Ramesh. S",
       "neverExpire": true,
       "openAmount": false,
       "paidAt": 1783857532162,
       "purpose": "GarageBookPro 1- Year Activation",
       "refId": "PL-2607-2429",
       "status": "pending",
-      "upi": "paymentss@kotak",
       "views": 7
     },
     "-OyWQXcH-vdY7S_objZe": {
       "amount": 3000,
       "createdAt": 1785423832069,
-      "name": "Ramesh. S",
       "neverExpire": false,
       "openAmount": false,
       "purpose": "1- Year Activation",
       "status": "pending",
-      "upi": "paymentss@kotak",
       "views": 7
     }
   }
