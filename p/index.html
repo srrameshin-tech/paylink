@@ -7,6 +7,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<meta name="app-build" content="20260813-1455">
 <style>
   :root{
     --bg:#1A1024; --card:#2A1A3A;
@@ -77,6 +78,19 @@
     box-shadow:0 8px 20px rgba(95,217,164,0.4); border:none; width:100%; cursor:pointer;
   }
   .btn-paynow:active{transform:translateY(1px);}
+  .pay-apps{
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+    margin:16px 0 6px; width:100%;
+  }
+  .btn-payapp{
+    display:flex; align-items:center; justify-content:center;
+    text-decoration:none; padding:14px 8px; min-width:0;
+    border-radius:12px; font-size:15px; font-weight:800; letter-spacing:0.2px;
+    color:#0B2B1E; background:linear-gradient(135deg, var(--mint), #3FAE82);
+    box-shadow:0 6px 16px rgba(95,217,164,0.35); border:none; cursor:pointer;
+    text-align:center; word-break:break-word;
+  }
+  .btn-payapp:active{transform:translateY(1px);}
   .receipt-foot{text-align:center; font-size:15px; color:#ffffff; margin-top:10px; letter-spacing:0.5px; font-weight:700;}
   .btn-confirm{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -87,17 +101,6 @@
     box-shadow:0 8px 20px rgba(242,184,75,0.4); cursor:pointer;
   }
   .btn-confirm:active{transform:translateY(1px);}
-  .confirm-form{display:none; margin-top:10px;}
-  .confirm-form.show{display:block;}
-  .confirm-form input{
-    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
-    background:var(--bg); color:var(--text); font-size:14px; margin-bottom:8px;
-  }
-  .confirm-form .hint{font-size:11px; color:var(--lav-dim); margin:-4px 0 8px;}
-  .confirm-form button{
-    width:100%; padding:11px; border-radius:10px; border:none;
-    background:var(--gold); color:#2A1A0A; font-weight:700; font-size:14px; cursor:pointer;
-  }
   .confirm-done{
     text-align:center; margin-top:10px; padding:11px; border-radius:12px;
     background:rgba(95,217,164,0.1); border:1px solid var(--mint); color:var(--mint);
@@ -136,14 +139,37 @@
       " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
   }
 
-  function buildUpiLink(entry) {
+  // Android shows a chooser when it meets a plain upi:// link, so one button is
+  // enough there. iOS has no chooser — it hands the link to whichever installed
+  // app claims the scheme, and on a phone with WhatsApp Pay that turns out to be
+  // WhatsApp. Someone expecting Google Pay taps through, lands somewhere strange
+  // and gives up, and the payment never arrives. So on iOS the person picks.
+  const UPI_APPS = [
+    { label: "Google Pay", scheme: "tez://upi/pay" },
+    { label: "PhonePe",    scheme: "phonepe://pay" },
+    { label: "Paytm",      scheme: "paytmmp://pay" },
+    { label: "வேற app",     scheme: "upi://pay" }
+  ];
+
+  function isIOS() {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  }
+
+  function upiParams(entry) {
     const params = [];
     params.push("pa=" + encodeURIComponent(entry.upi));
     params.push("pn=" + encodeURIComponent(entry.name));
     if (entry.amount) params.push("am=" + encodeURIComponent(entry.amount));
     params.push("cu=INR");
     if (entry.purpose) params.push("tn=" + encodeURIComponent(entry.purpose));
-    return `upi://pay?${params.join("&")}`;
+    return params.join("&");
+  }
+
+  // The QR keeps the plain upi:// form on every device — a scanner is already
+  // inside whichever app the person chose to open.
+  function buildUpiLink(entry, scheme) {
+    return `${scheme || "upi://pay"}?${upiParams(entry)}`;
   }
 
   function getParam(name) {
@@ -284,8 +310,16 @@
           <div class="qr-box">${expired ? '<div style="padding:40px 10px; color:#888; font-size:12.5px; text-align:center;">QR expired ஆச்சு<br>work ஆகாது</div>' : '<div id="qrcodeEl"></div>'}</div>
           ${expired
             ? `<span class="btn-paynow" style="opacity:0.4; pointer-events:none; cursor:not-allowed;">💳 Pay Now (Expired)</span>`
-            : `<a href="${link}" class="btn-paynow">💳 Pay Now</a>`}
-          <div class="receipt-foot">${expired ? 'இந்த link expire ஆயிடுச்சு — தொடர்பு கொள்ளுங்க' : 'Scan QR illa Pay Now பட்டன் அழுத்துங்க'}</div>
+            : isIOS()
+              ? `<div class="pay-apps">${UPI_APPS.map(function(a){
+                  return `<a href="${buildUpiLink(entry, a.scheme)}" class="btn-payapp">${a.label}</a>`;
+                }).join("")}</div>`
+              : `<a href="${link}" class="btn-paynow">💳 Pay Now</a>`}
+          <div class="receipt-foot">${expired
+            ? 'இந்த link expire ஆயிடுச்சு — தொடர்பு கொள்ளுங்க'
+            : (isIOS()
+                ? 'QR scan பண்ணுங்க இல்ல உங்க app-ஐ தேர்ந்தெடுங்க'
+                : 'Scan QR illa Pay Now பட்டன் அழுத்துங்க')}</div>
 
           ${confirmListHtml}
           ${(!isPaid && !expired) ? `<button class="btn-confirm" id="confirmSubmitBtn">✅ Naan Pay Pannitten</button>` : ''}
@@ -304,13 +338,6 @@
         colorDark: "#1A1024",
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.M
-      });
-    }
-
-    const toggleBtn = document.getElementById("confirmToggleBtn");
-    if (toggleBtn) {
-      toggleBtn.addEventListener("click", () => {
-        document.getElementById("confirmForm").classList.toggle("show");
       });
     }
 
