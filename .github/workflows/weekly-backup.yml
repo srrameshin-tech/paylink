@@ -24,6 +24,9 @@ jobs:
         run: pip install requests
 
       - name: Fetch Firebase data and save backup
+        env:
+          BACKUP_EMAIL: ${{ secrets.BACKUP_EMAIL }}
+          BACKUP_PASSWORD: ${{ secrets.BACKUP_PASSWORD }}
         run: python backup_script.py
 
       - name: Commit backup file
