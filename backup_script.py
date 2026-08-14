@@ -28,7 +28,11 @@ import requests
 
 FIREBASE_API_KEY = "AIzaSyBVGVu59jDZybPFAX_pRisSrQRoXHQ0EWY"
 DB_URL = "https://kmbsc-chit-default-rtdb.asia-southeast1.firebasedatabase.app"
-ROOT = "paymentLinks"
+# The rules set /paymentLinks itself to false and grant read one level down, on
+# entries. Asking for the parent gets refused outright — the same trap that had
+# the kmbsc-whatsapp app reading an empty screen — so the fetch names the exact
+# node the bot is allowed to see.
+ROOT = "paymentLinks/entries"
 KEEP_LAST_N = 12
 
 def _required_secret(name):
@@ -123,20 +127,12 @@ def fetch_data(id_token):
     return resp.json()
 
 
-def redact(data):
+def redact(entries):
     """Keep only allow-listed fields. Returns the safe copy and what was held back."""
-    if not isinstance(data, dict):
-        return {}, []
-
-    entries = data.get("entries")
     if not isinstance(entries, dict):
         return {}, []
 
     withheld = set()
-    for key in data:
-        if key != "entries":
-            withheld.add(key)
-
     safe_entries = {}
     for entry_id, entry in entries.items():
         if not isinstance(entry, dict):
